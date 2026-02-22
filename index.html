@@ -3,305 +3,650 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>ویرایشگر بصری HTML</title>
+<title>Visual HTML Editor v2</title>
 <style>
-/* ── Reset ── */
+/* ═══════════════════════════════════════════
+   RESET & TOKENS
+═══════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:        #0e0e0e;
-  --panel:     #141414;
-  --border:    #242424;
-  --text:      #d4d4d4;
-  --dim:       #555;
-  --accent:    #e8a838;
-  --accent2:   #39ff6e;
-  --danger:    #ff5f5f;
-  --mono:      'Courier New', monospace;
-  --sans:      'Tahoma', system-ui, sans-serif;
-  --bar-h:     46px;
+  --bg:         #0b0b0b;
+  --panel:      #111111;
+  --panel2:     #161616;
+  --border:     #1f1f1f;
+  --border2:    #2a2a2a;
+  --text:       #d0d0d0;
+  --text-dim:   #505050;
+  --text-bright:#efefef;
+  --accent:     #e8a838;
+  --accent-dim: #8a5c0e;
+  --green:      #3ecf74;
+  --blue:       #4ca3e8;
+  --red:        #e85555;
+  --purple:     #b07ee8;
+  --mono:       'Courier New', Courier, monospace;
+  --sans:       'Tahoma', 'Vazirmatn', system-ui, -apple-system, sans-serif;
+  --bar:        44px;
+  --sidebar:    52px;
+  --propw:      260px;
 }
 
-html, body { height: 100%; overflow: hidden; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 14px;
-  display: flex;
-  flex-direction: column;
-}
+button, input, select, textarea { font-family: inherit; font-size: inherit; }
 
-/* ── TOP BAR ── */
+/* ═══════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════ */
 #topbar {
-  height: var(--bar-h);
+  height: var(--bar);
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  gap: 10px;
+  padding: 0 10px;
+  gap: 4px;
   flex-shrink: 0;
-  z-index: 100;
+  z-index: 200;
+  position: relative;
 }
 
-#topbar .logo {
+.logo {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--accent);
+  padding: 0 10px;
   letter-spacing: .05em;
-  margin-left: auto; /* RTL: pushes to right end */
-}
-
-.btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 11px;
-  padding: 5px 13px;
-  cursor: pointer;
-  letter-spacing: .04em;
-  transition: border-color .15s, color .15s;
   white-space: nowrap;
 }
-.btn:hover { border-color: var(--accent); color: var(--accent); }
-.btn.primary { border-color: var(--accent); color: var(--accent); }
-.btn.primary:hover { background: var(--accent); color: #000; }
-.btn.green { border-color: var(--accent2); color: var(--accent2); }
-.btn.green:hover { background: var(--accent2); color: #000; }
-.btn.red { border-color: var(--danger); color: var(--danger); }
 
-#mode-indicator {
+.sep { width: 1px; height: 22px; background: var(--border2); margin: 0 4px; flex-shrink: 0; }
+
+/* top buttons */
+.tb { 
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
   font-family: var(--mono);
   font-size: 11px;
   padding: 4px 10px;
-  border: 1px solid var(--border);
-  letter-spacing: .06em;
+  cursor: pointer;
+  letter-spacing: .03em;
+  white-space: nowrap;
+  border-radius: 2px;
+  transition: all .15s;
+  display: flex; align-items: center; gap: 5px;
 }
-#mode-indicator.visual { border-color: var(--accent2); color: var(--accent2); }
-#mode-indicator.code   { border-color: var(--accent);  color: var(--accent);  }
+.tb:hover { color: var(--text-bright); background: var(--panel2); border-color: var(--border2); }
+.tb.active, .tb.on { color: var(--accent); border-color: var(--accent-dim); background: rgba(232,168,56,.07); }
+.tb.green-btn { color: var(--green); }
+.tb.green-btn:hover, .tb.green-btn.on { color: #000; background: var(--green); border-color: var(--green); }
+.tb.blue-btn  { color: var(--blue);  }
+.tb.blue-btn:hover  { color: #000; background: var(--blue); border-color: var(--blue); }
+.tb.red-btn   { color: var(--red);   }
+.tb.red-btn:hover   { color: #fff; background: var(--red); border-color: var(--red); }
 
-/* ── MAIN LAYOUT ── */
-#main {
+/* language toggle — margin set dynamically by setLang() */
+#lang-toggle {
+  background: var(--panel2);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  display: flex;
+  overflow: hidden;
+}
+#lang-toggle button {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all .15s;
+}
+#lang-toggle button.active { background: var(--accent); color: #000; }
+
+/* mode badge */
+#mode-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  letter-spacing: .08em;
+  border-radius: 2px;
+}
+#mode-badge.visual { border-color: var(--green); color: var(--green); }
+#mode-badge.code   { border-color: var(--accent); color: var(--accent); }
+
+/* ═══════════════════════════════════════════
+   BODY LAYOUT
+═══════════════════════════════════════════ */
+#body-wrap {
+  display: flex;
+  height: calc(100vh - var(--bar));
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════
+   LEFT SIDEBAR — ELEMENTS PALETTE
+═══════════════════════════════════════════ */
+#sidebar {
+  width: 200px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sidebar-head {
+  height: 32px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: .1em;
+}
+
+#elem-search {
+  margin: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 5px 8px;
+  font-size: 11px;
+  outline: none;
+  border-radius: 2px;
+  width: calc(100% - 16px);
+  direction: ltr;
+}
+#elem-search:focus { border-color: var(--accent); }
+
+#elem-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 6px 8px;
+}
+
+.elem-group { margin-bottom: 8px; }
+
+.elem-group-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 4px 4px 2px;
+}
+
+.elem-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  padding: 5px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  font-size: 11px;
+  text-align: right;
+  transition: all .12s;
+  direction: ltr;
+}
+.elem-btn:hover { background: var(--panel2); border-color: var(--border); color: var(--accent); }
+.elem-btn .icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.elem-btn .elabel { flex: 1; text-align: left; font-family: var(--mono); font-size: 11px; }
+.elem-btn .etag { font-size: 9px; color: var(--text-dim); font-family: var(--mono); }
+
+/* ═══════════════════════════════════════════
+   CENTER: CODE + PREVIEW
+═══════════════════════════════════════════ */
+#center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* split view */
+#split {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-/* ── CODE PANEL ── */
-#code-panel {
-  width: 420px;
-  min-width: 280px;
-  max-width: 55%;
+/* code pane */
+#code-pane {
+  width: 42%;
+  min-width: 220px;
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--border);
-  flex-shrink: 0;
 }
 
-#code-panel-header {
-  height: 34px;
-  background: var(--panel);
+.pane-head {
+  height: 30px;
+  background: var(--panel2);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 10px;
   gap: 8px;
   font-family: var(--mono);
-  font-size: 11px;
-  color: var(--dim);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
 }
-
-#code-panel-header span { color: var(--accent); }
+.pane-head .ph-title { color: var(--accent); }
 
 #code-editor {
   flex: 1;
-  background: #0a0a0a;
-  color: #c9c9c9;
+  background: #080808;
+  color: #c5c5c5;
   font-family: var(--mono);
   font-size: 12.5px;
   line-height: 1.75;
   border: none;
   outline: none;
   resize: none;
-  padding: 16px;
+  padding: 14px 16px;
   tab-size: 2;
   direction: ltr;
   text-align: left;
-  white-space: pre;
   overflow: auto;
 }
+#code-editor::placeholder { color: #252525; }
 
-#code-editor::placeholder { color: #333; }
-
-/* ── RESIZE HANDLE ── */
+/* resizer */
 #resizer {
-  width: 5px;
+  width: 4px;
   background: var(--border);
   cursor: col-resize;
   flex-shrink: 0;
   transition: background .15s;
+  position: relative;
 }
-#resizer:hover, #resizer.dragging { background: var(--accent); }
+#resizer:hover, #resizer.drag { background: var(--accent); }
+#resizer::after {
+  content: '⋮';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-dim);
+  font-size: 10px;
+  pointer-events: none;
+}
 
-/* ── PREVIEW PANEL ── */
-#preview-panel {
+/* preview pane */
+#preview-pane {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  min-width: 0;
 }
-
-#preview-panel-header {
-  height: 34px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  gap: 8px;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--dim);
-  flex-shrink: 0;
-}
-
-#preview-panel-header span { color: var(--accent2); }
 
 #preview-frame {
   flex: 1;
   border: none;
   background: #fff;
   display: block;
+  min-height: 0;
 }
 
-/* ── PROPERTY PANEL (slides in from bottom of preview) ── */
-#prop-panel {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 0;
-  background: var(--panel);
+/* bottom status bar */
+#statusbar {
+  height: 24px;
+  background: var(--panel2);
   border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 16px;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+#statusbar span { display: flex; align-items: center; gap: 4px; }
+#status-sel { color: var(--accent); }
+#status-chars { color: var(--blue); }
+
+/* ═══════════════════════════════════════════
+   RIGHT SIDE — PROPERTY PANEL
+═══════════════════════════════════════════ */
+#prop-panel {
+  width: var(--propw);
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
   overflow: hidden;
-  transition: height .25s cubic-bezier(.22,.68,0,1.2);
-  z-index: 50;
-  direction: ltr;
 }
 
-#prop-panel.open { height: 220px; }
+#prop-panel-head {
+  height: 32px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: .08em;
+  gap: 6px;
+}
 
-#prop-panel-inner {
-  padding: 12px 14px;
-  height: 100%;
+#prop-tag-name {
+  background: rgba(62,207,116,.12);
+  border: 1px solid rgba(62,207,116,.25);
+  padding: 1px 7px;
+  border-radius: 2px;
+  font-size: 11px;
+  color: var(--green);
+}
+
+#prop-close {
+  margin-right: auto;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color .15s;
+}
+#prop-close:hover { color: var(--red); }
+
+#prop-body {
+  flex: 1;
   overflow-y: auto;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-#prop-tag-line {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--accent);
+/* tabs in prop panel */
+.prop-tabs {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  margin: -10px -10px 0;
 }
-
-#prop-tag-line .close-prop {
-  margin-right: auto;
+.prop-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 6px 0;
   cursor: pointer;
-  color: var(--dim);
-  font-size: 15px;
-  line-height: 1;
-  transition: color .15s;
+  letter-spacing: .06em;
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
 }
-#prop-tag-line .close-prop:hover { color: var(--danger); }
+.prop-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.prop-tab:hover { color: var(--text); }
 
-.prop-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 7px;
+.prop-section { display: flex; flex-direction: column; gap: 7px; }
+.prop-section-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
 }
+.prop-section-title:first-child { border-top: none; margin-top: 0; }
 
 .prop-row {
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
-
 .prop-row label {
   font-family: var(--mono);
   font-size: 10px;
-  color: var(--dim);
-  letter-spacing: .06em;
+  color: var(--text-dim);
+  letter-spacing: .04em;
 }
 
-.prop-row input, .prop-row select, .prop-row textarea {
-  background: #0a0a0a;
-  border: 1px solid var(--border);
+.prop-input, .prop-select, .prop-textarea {
+  background: var(--bg);
+  border: 1px solid var(--border2);
   color: var(--text);
+  padding: 5px 8px;
   font-family: var(--mono);
-  font-size: 12px;
-  padding: 4px 8px;
+  font-size: 11px;
   outline: none;
   direction: ltr;
   text-align: left;
+  border-radius: 2px;
   transition: border-color .15s;
+  width: 100%;
 }
+.prop-input:focus, .prop-select:focus, .prop-textarea:focus { border-color: var(--accent); }
+.prop-textarea { resize: vertical; min-height: 55px; line-height: 1.6; }
+.prop-select { cursor: pointer; }
+.prop-select option { background: var(--panel2); }
 
-.prop-row input:focus,
-.prop-row textarea:focus { border-color: var(--accent); }
-
-.prop-row textarea { resize: vertical; min-height: 52px; }
-
-#prop-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+/* color row */
+.color-row { display: flex; gap: 5px; align-items: center; }
+.color-picker {
+  width: 30px; height: 28px;
+  padding: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
+.color-picker:focus { border-color: var(--accent); }
 
-/* ── TOOLTIP overlay ── */
-#hovered-hint {
-  position: fixed;
-  background: rgba(232,168,56,.9);
-  color: #000;
-  font-family: var(--mono);
-  font-size: 10px;
-  padding: 2px 7px;
-  pointer-events: none;
-  z-index: 9999;
-  letter-spacing: .05em;
-  display: none;
-}
+/* 2-col grid for short props */
+.prop-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
-/* ── TOAST ── */
-#toast {
-  position: fixed;
-  bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%) translateY(20px);
+/* apply button */
+.prop-apply {
   background: var(--accent);
   color: #000;
+  border: none;
+  padding: 7px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 2px;
+  font-weight: bold;
+  letter-spacing: .04em;
+  transition: opacity .15s;
+  width: 100%;
+  margin-top: 2px;
+}
+.prop-apply:hover { opacity: .85; }
+
+/* prop actions row */
+.prop-action-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.prop-action-btn {
+  flex: 1;
+  min-width: 60px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 5px 4px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all .15s;
+  text-align: center;
+}
+.prop-action-btn:hover { border-color: var(--accent); color: var(--accent); }
+.prop-action-btn.danger:hover { border-color: var(--red); color: var(--red); }
+.prop-action-btn.green-a:hover { border-color: var(--green); color: var(--green); }
+.prop-action-btn.blue-a:hover  { border-color: var(--blue); color: var(--blue); }
+
+/* no-selection placeholder */
+#no-sel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: center;
+  padding: 20px;
+}
+#no-sel .icon { font-size: 32px; opacity: .3; }
+
+/* ═══════════════════════════════════════════
+   INSERT MODAL
+═══════════════════════════════════════════ */
+#insert-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+#insert-modal.open { display: flex; }
+
+#insert-box {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  width: 480px;
+  max-width: 95vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  overflow: hidden;
+  direction: ltr;
+  animation: popIn .2s cubic-bezier(.22,.68,0,1.2);
+}
+@keyframes popIn { from { opacity:0; transform:scale(.93); } to { opacity:1; transform:none; } }
+
+#insert-box-head {
+  padding: 12px 16px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--mono);
   font-size: 12px;
-  padding: 8px 20px;
-  opacity: 0;
-  transition: opacity .2s, transform .2s;
-  pointer-events: none;
-  z-index: 9999;
-  letter-spacing: .05em;
-  white-space: nowrap;
+  color: var(--accent);
 }
-#toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
+#insert-box-head .close-modal {
+  margin-left: auto;
+  background: none; border: none;
+  color: var(--text-dim); cursor: pointer; font-size: 16px;
+  transition: color .15s;
+}
+#insert-box-head .close-modal:hover { color: var(--red); }
+
+#insert-search {
+  margin: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 12px;
+  outline: none;
+  border-radius: 2px;
+  width: calc(100% - 20px);
+}
+#insert-search:focus { border-color: var(--accent); }
+
+#insert-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 0 10px 10px;
+  overflow-y: auto;
 }
 
-/* ── EMPTY STATE ── */
+.insert-item {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  padding: 10px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  text-align: center;
+  transition: all .15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.insert-item:hover { border-color: var(--accent); background: rgba(232,168,56,.06); }
+.insert-item .i-icon { font-size: 22px; }
+.insert-item .i-name { font-family: var(--mono); font-size: 10px; color: var(--text); }
+.insert-item .i-tag  { font-family: var(--mono); font-size: 9px; color: var(--text-dim); }
+
+/* config area in insert modal */
+#insert-config {
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg);
+}
+#insert-config.open { display: flex; }
+#insert-config label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+#insert-config input, #insert-config select, #insert-config textarea {
+  background: var(--panel2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 5px 8px;
+  font-size: 11px;
+  outline: none;
+  border-radius: 2px;
+  width: 100%;
+  font-family: var(--mono);
+}
+#insert-config input:focus, #insert-config textarea:focus { border-color: var(--accent); }
+
+#do-insert-btn {
+  background: var(--green);
+  color: #000;
+  border: none;
+  padding: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 2px;
+  font-weight: bold;
+  transition: opacity .15s;
+}
+#do-insert-btn:hover { opacity: .85; }
+
+/* ═══════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════ */
 #empty-state {
   position: absolute;
   inset: 0;
@@ -309,579 +654,1607 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  background: #f8f8f8;
-  color: #888;
+  gap: 12px;
+  background: #fafafa;
+  color: #999;
   font-family: 'Courier New', monospace;
   font-size: 13px;
   text-align: center;
   padding: 30px;
   z-index: 5;
 }
-#empty-state .big { font-size: 40px; margin-bottom: 4px; }
-#empty-state p { color: #aaa; font-size: 12px; max-width: 280px; line-height: 1.6; }
+#empty-state .big { font-size: 44px; opacity: .4; }
+#empty-state p { font-size: 11px; color: #bbb; max-width: 260px; line-height: 1.7; }
 
-/* ── SCROLL ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* ═══════════════════════════════════════════
+   HOVER TAG TOOLTIP
+═══════════════════════════════════════════ */
+#tag-hint {
+  position: fixed;
+  background: rgba(232,168,56,.92);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  letter-spacing: .04em;
+  border-radius: 2px;
+}
+
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+#toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(14px);
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 8px 18px;
+  opacity: 0;
+  transition: opacity .2s, transform .2s;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+  border-radius: 3px;
+}
+#toast.accent { background: var(--accent); color: #000; border-color: var(--accent); }
+#toast.green  { background: var(--green);  color: #000; border-color: var(--green);  }
+#toast.show   { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ═══════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #444; }
+::-webkit-scrollbar-thumb { background: #252525; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+/* ═══════════════════════════════════════════
+   FOCUS
+═══════════════════════════════════════════ */
+:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+/* ═══════════════════════════════════════════
+   HISTORY PANEL (slides over prop panel)
+═══════════════════════════════════════════ */
+#history-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+}
+#history-modal.open { display: flex; }
+
+#history-box {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  width: 680px;
+  max-width: 96vw;
+  height: 72vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  overflow: hidden;
+  direction: ltr;
+  animation: popIn .18s cubic-bezier(.22,.68,0,1.2);
+}
+
+#history-head {
+  height: 40px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 10px;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+#history-head .hh-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+#history-head button {
+  background: transparent; border: 1px solid var(--border2); color: var(--text-dim);
+  font-family: var(--mono); font-size: 10px; padding: 3px 10px; cursor: pointer; border-radius: 2px;
+  transition: all .15s;
+}
+#history-head button:hover { border-color: var(--accent); color: var(--accent); }
+#history-head .close-hist { font-size: 15px; padding: 2px 6px; }
+#history-head .close-hist:hover { border-color: var(--red); color: var(--red); }
+
+#history-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+#history-list {
+  width: 220px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hist-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .12s;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: relative;
+}
+.hist-item:hover { background: var(--panel2); }
+.hist-item.active { background: rgba(232,168,56,.08); border-right: 2px solid var(--accent); }
+.hist-item .h-num {
+  font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: .06em;
+}
+.hist-item .h-label {
+  font-family: var(--mono); font-size: 11px; color: var(--text);
+}
+.hist-item .h-time {
+  font-family: var(--mono); font-size: 9px; color: var(--text-dim);
+}
+.hist-item .h-size {
+  font-family: var(--mono); font-size: 9px; color: var(--blue);
+}
+.hist-item.current .h-label { color: var(--accent); }
+.hist-item .h-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--green); color: #000;
+  font-size: 8px; padding: 1px 5px; border-radius: 2px;
+  font-family: var(--mono); letter-spacing: .05em;
+}
+
+#history-diff {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#diff-info {
+  height: 32px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.diff-add { color: var(--green); }
+.diff-rem { color: var(--red); }
+
+#diff-view {
+  flex: 1;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  padding: 8px 0;
+  background: #080808;
+}
+
+.diff-line {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.diff-line:hover { background: rgba(255,255,255,.03); }
+.diff-line .ln { 
+  min-width: 36px; color: var(--text-dim); user-select: none;
+  font-size: 10px; padding-top: 1px; flex-shrink: 0;
+}
+.diff-line .lc { flex: 1; }
+.diff-line.added   { background: rgba(62,207,116,.07); }
+.diff-line.added .lc   { color: var(--green); }
+.diff-line.added::before   { content: '+'; color: var(--green); margin-left: 6px; flex-shrink:0; }
+.diff-line.removed { background: rgba(232,85,85,.07); }
+.diff-line.removed .lc { color: var(--red); }
+.diff-line.removed::before { content: '−'; color: var(--red); margin-left: 6px; flex-shrink:0; }
+.diff-line.same    { }
+.diff-line.same .lc    { color: #555; }
+.diff-line.same::before    { content: ' '; margin-left: 6px; flex-shrink:0; }
+
+#diff-actions {
+  height: 40px;
+  background: var(--panel2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+#diff-actions button {
+  background: transparent; border: 1px solid var(--border2);
+  color: var(--text-dim); font-family: var(--mono); font-size: 11px;
+  padding: 5px 14px; cursor: pointer; border-radius: 2px; transition: all .15s;
+}
+#diff-actions .restore-btn { border-color: var(--accent); color: var(--accent); }
+#diff-actions .restore-btn:hover { background: var(--accent); color: #000; }
+#diff-actions button:hover { border-color: var(--text-dim); color: var(--text); }
+#diff-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-right: auto; }
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
+<!-- ═══ TOP BAR ═══ -->
 <div id="topbar">
-  <button class="btn primary" id="btn-run" title="اجرا کن">▶ اجرا</button>
-  <button class="btn green" id="btn-toggle-visual" title="حالت بصری">👁 بصری</button>
-  <button class="btn" id="btn-copy">⎘ کپی کد</button>
-  <button class="btn" id="btn-download">↓ دانلود</button>
-  <button class="btn red" id="btn-clear">✕ پاک</button>
-  <div id="mode-indicator" class="code">CODE</div>
-  <span class="logo">visual-editor v1</span>
+  <span class="logo">⬡ VEditor</span>
+  <div class="sep"></div>
+
+  <button class="tb green-btn" id="btn-run">▶ <span data-t="run">اجرا</span></button>
+  <button class="tb" id="btn-visual">👁 <span data-t="visual">بصری</span></button>
+  <button class="tb" id="btn-insert">＋ <span data-t="insert">درج عنصر</span></button>
+
+  <div class="sep"></div>
+
+  <button class="tb" id="btn-undo" title="Ctrl+Z">↩ <span data-t="undo">برگشت</span></button>
+  <button class="tb" id="btn-redo" title="Ctrl+Y">↪ <span data-t="redo">جلو</span></button>
+
+  <div class="sep"></div>
+
+  <button class="tb" id="btn-format">⌥ <span data-t="format">فرمت کد</span></button>
+  <button class="tb" id="btn-history">🕐 <span data-t="history">تاریخچه</span></button>
+  <button class="tb" id="btn-copy">⎘ <span data-t="copy">کپی</span></button>
+  <button class="tb" id="btn-dl">↓ <span data-t="download">دانلود</span></button>
+  <button class="tb red-btn" id="btn-clear">✕</button>
+
+  <div class="sep"></div>
+  <div id="mode-badge" class="code" data-t-badge="code-mode">CODE</div>
+
+  <div id="lang-toggle">
+    <button id="lang-fa" class="active" onclick="setLang('fa')">FA</button>
+    <button id="lang-en" onclick="setLang('en')">EN</button>
+  </div>
 </div>
 
-<!-- MAIN -->
-<div id="main">
+<!-- ═══ BODY ═══ -->
+<div id="body-wrap">
 
-  <!-- PREVIEW -->
-  <div id="preview-panel">
-    <div id="preview-panel-header">
-      <span>● PREVIEW</span>
-      <span id="preview-status" style="color:var(--dim)">— منتظر کد —</span>
-    </div>
-    <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms" title="پیش‌نمایش"></iframe>
+  <!-- SIDEBAR: elements palette -->
+  <div id="sidebar">
+    <div class="sidebar-head" data-t="elements">عناصر</div>
+    <input id="elem-search" type="text" placeholder="search..." />
+    <div id="elem-list"><!-- filled by JS --></div>
+  </div>
 
-    <!-- empty state inside preview -->
-    <div id="empty-state">
-      <div class="big">{ }</div>
-      <strong>کد HTML خود را در سمت راست وارد کنید</strong>
-      <p>بعد از کلیک روی ▶ اجرا، سایت اینجا نمایش داده می‌شود.<br/>در حالت بصری روی هر عنصر کلیک کن تا ویرایشش کنی.</p>
-    </div>
+  <!-- CENTER -->
+  <div id="center">
+    <div id="split">
 
-    <!-- property panel -->
-    <div id="prop-panel">
-      <div id="prop-panel-inner">
-        <div id="prop-tag-line">
-          <span id="prop-tag-label">&lt;element&gt;</span>
-          <span id="prop-path" style="color:var(--dim);font-size:10px;"></span>
-          <span class="close-prop" id="close-prop" title="بستن">✕</span>
+      <!-- CODE -->
+      <div id="code-pane">
+        <div class="pane-head">
+          <span class="ph-title">HTML</span>
+          <span id="char-count" style="margin-right:auto;color:var(--text-dim)">0</span>
+          <span id="line-count" style="color:var(--text-dim)">0 ln</span>
         </div>
-        <div class="prop-grid" id="prop-grid"></div>
-        <div id="prop-actions"></div>
+        <textarea id="code-editor" spellcheck="false"
+          placeholder="<!-- paste HTML here / کد HTML رو اینجا بچسبانید -->"></textarea>
+      </div>
+
+      <div id="resizer"></div>
+
+      <!-- PREVIEW -->
+      <div id="preview-pane">
+        <div class="pane-head">
+          <span class="ph-title" style="color:var(--green)">PREVIEW</span>
+          <span id="preview-status" style="color:var(--text-dim);margin-right:auto" data-t="waiting">— منتظر کد —</span>
+          <span id="viewport-size" style="color:var(--text-dim);font-size:9px"></span>
+        </div>
+        <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
+        <div id="empty-state">
+          <div class="big">{ }</div>
+          <strong data-t="empty-title">کد HTML خود را وارد کنید</strong>
+          <p data-t="empty-desc">بعد از کلیک روی ▶ اجرا، سایت اینجا نمایش داده می‌شود. در حالت 👁 بصری روی هر عنصر کلیک کن تا ویرایشش کنی.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STATUSBAR -->
+    <div id="statusbar">
+      <span id="status-sel">—</span>
+      <span>|</span>
+      <span id="status-chars" data-t-pre="chars">0 <span data-t="chars-unit">کاراکتر</span></span>
+      <span>|</span>
+      <span id="status-lines">0 <span data-t="lines-unit">خط</span></span>
+      <span style="margin-right:auto"></span>
+      <span id="status-msg" style="color:var(--green)"></span>
+      <span>Ctrl+Enter = <span data-t="run">اجرا</span></span>
+    </div>
+  </div>
+
+  <!-- PROPERTY PANEL -->
+  <div id="prop-panel">
+    <div id="prop-panel-head">
+      <span data-t="properties">ویژگی‌ها</span>
+      <span id="prop-tag-name" style="display:none">&lt;?&gt;</span>
+      <button id="prop-close" title="close">✕</button>
+    </div>
+    <!-- no selection -->
+    <div id="no-sel">
+      <div class="icon">⬡</div>
+      <span data-t="no-sel">عنصری انتخاب نشده<br/>حالت بصری را فعال کن و روی یک عنصر کلیک کن</span>
+    </div>
+    <!-- props filled by JS, hidden initially -->
+    <div id="prop-body" style="display:none">
+      <div class="prop-tabs">
+        <button class="prop-tab active" data-tab="style" data-t="tab-style">استایل</button>
+        <button class="prop-tab" data-tab="content" data-t="tab-content">محتوا</button>
+        <button class="prop-tab" data-tab="attrs" data-t="tab-attrs">ویژگی‌ها</button>
+        <button class="prop-tab" data-tab="actions" data-t="tab-actions">عملیات</button>
+      </div>
+      <div id="tab-style-content"  class="prop-section" style="margin-top:10px"></div>
+      <div id="tab-content-content" class="prop-section" style="display:none;margin-top:10px"></div>
+      <div id="tab-attrs-content"   class="prop-section" style="display:none;margin-top:10px"></div>
+      <div id="tab-actions-content" class="prop-section" style="display:none;margin-top:10px"></div>
+    </div>
+  </div>
+
+</div><!-- /body-wrap -->
+
+<!-- ═══ INSERT MODAL ═══ -->
+<div id="insert-modal">
+  <div id="insert-box">
+    <div id="insert-box-head">
+      ＋ <span data-t="insert-title">درج عنصر جدید</span>
+      <button class="close-modal" id="close-insert">✕</button>
+    </div>
+    <input id="insert-search" type="text" placeholder="search elements..." />
+    <div id="insert-grid"><!-- filled by JS --></div>
+    <div id="insert-config">
+      <div id="insert-config-fields"></div>
+      <button id="do-insert-btn" data-t="do-insert">✓ درج کن</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HISTORY MODAL ═══ -->
+<div id="history-modal">
+  <div id="history-box">
+    <div id="history-head">
+      🕐 <span id="hist-title" data-t="history-title">تاریخچه تغییرات</span>
+      <div class="hh-right">
+        <button id="hist-clear-btn" data-t="hist-clear">پاک کردن تاریخچه</button>
+        <button class="close-hist" id="close-history">✕</button>
+      </div>
+    </div>
+    <div id="history-body">
+      <div id="history-list"><!-- filled by JS --></div>
+      <div id="history-diff">
+        <div id="diff-info">
+          <span data-t="diff-select">یک نسخه را از لیست انتخاب کنید</span>
+          <span class="diff-add" id="diff-adds"></span>
+          <span class="diff-rem" id="diff-rems"></span>
+        </div>
+        <div id="diff-view"></div>
+        <div id="diff-actions">
+          <span id="diff-label"></span>
+          <button class="restore-btn" id="restore-btn" style="display:none" data-t="restore">↩ بازگردانی این نسخه</button>
+          <button id="copy-hist-btn" style="display:none" data-t="copy-version">⎘ کپی این نسخه</button>
+        </div>
       </div>
     </div>
   </div>
-
-  <!-- RESIZER -->
-  <div id="resizer"></div>
-
-  <!-- CODE -->
-  <div id="code-panel">
-    <div id="code-panel-header">
-      <span>● HTML</span>
-      <span id="char-count" style="color:var(--dim);margin-right:auto;">0 کاراکتر</span>
-    </div>
-    <textarea id="code-editor" spellcheck="false" placeholder="<!-- کد HTML خود را اینجا بچسبانید -->&#10;&#10;<!DOCTYPE html>&#10;<html>&#10;  <head>...</head>&#10;  <body>...</body>&#10;</html>"></textarea>
-  </div>
-
 </div>
 
-<!-- TOOLTIP -->
-<div id="hovered-hint"></div>
-<!-- TOAST -->
+<!-- HINT & TOAST -->
+<div id="tag-hint"></div>
 <div id="toast"></div>
 
 <script>
-/* ============================================================
-   STATE
-   ============================================================ */
-const state = {
-  visualMode: false,
-  selectedEl: null,   // element in iframe
-  selectedPath: '',
+'use strict';
+/* ══════════════════════════════════════════════════
+   I18N
+══════════════════════════════════════════════════ */
+const LANGS = {
+  fa: {
+    run:'اجرا', visual:'بصری', insert:'درج عنصر', undo:'برگشت', redo:'جلو',
+    format:'فرمت کد', copy:'کپی', download:'دانلود', elements:'عناصر',
+    properties:'ویژگی‌ها', waiting:'— منتظر کد —', 'empty-title':'کد HTML خود را وارد کنید',
+    'empty-desc':'بعد از کلیک روی ▶ اجرا، سایت اینجا نمایش داده می‌شود. در حالت 👁 بصری روی هر عنصر کلیک کن.',
+    'no-sel':'عنصری انتخاب نشده\nحالت بصری را فعال کن و روی یک عنصر کلیک کن',
+    'tab-style':'استایل','tab-content':'محتوا','tab-attrs':'ویژگی‌ها','tab-actions':'عملیات',
+    'chars-unit':'کاراکتر','lines-unit':'خط','insert-title':'درج عنصر جدید',
+    'do-insert':'✓ درج کن','code-mode':'کد','visual-mode':'بصری',
+    'copied':'✓ کد کپی شد','downloaded':'↓ فایل دانلود شد','cleared':'پاک شد',
+    'run-msg':'▶ اجرا شد','formatted':'⌥ کد فرمت شد','applied':'✓ تغییرات اعمال شد',
+    'deleted':'✕ عنصر حذف شد','duplicated':'⎘ عنصر کپی شد','inserted':'＋ عنصر درج شد',
+    'visual-on':'👁 حالت بصری — روی عنصرها کلیک کن','visual-off':'✎ حالت کد',
+    'no-code':'ابتدا کد HTML وارد کنید','confirm-clear':'همه چیز پاک شود؟',
+    'confirm-del':'این عنصر حذف شود؟',
+    'history':'تاریخچه','history-title':'تاریخچه تغییرات',
+    'hist-clear':'پاک کردن تاریخچه','hist-cleared':'تاریخچه پاک شد',
+    'restore':'↩ بازگردانی این نسخه','restored':'✓ نسخه بازگردانی شد',
+    'copy-version':'⎘ کپی این نسخه','diff-select':'یک نسخه را از لیست انتخاب کنید',
+    'hist-empty':'هنوز هیچ تغییری ثبت نشده',
+    'hist-now':'نسخه فعلی','hist-label':'نسخه',
+    // prop labels
+    'color':'رنگ متن','bg':'پس‌زمینه','fontSize':'اندازه فونت','fontWeight':'ضخامت',
+    'fontFamily':'فونت','textAlign':'تراز متن','lineHeight':'فاصله خطوط',
+    'letterSpacing':'فاصله حروف','padding':'پدینگ','paddingTop':'↑','paddingRight':'→',
+    'paddingBottom':'↓','paddingLeft':'←','margin':'مارجین','marginTop':'↑',
+    'marginRight':'→','marginBottom':'↓','marginLeft':'←',
+    'width':'عرض','height':'ارتفاع','maxWidth':'حداکثر عرض','minHeight':'حداقل ارتفاع',
+    'display':'نمایش','flexDirection':'جهت flex','justifyContent':'توجیه محتوا',
+    'alignItems':'تراز آیتم‌ها','gap':'فاصله','borderRadius':'گوشه‌گرد',
+    'border':'حاشیه','boxShadow':'سایه','opacity':'شفافیت','transform':'تبدیل',
+    'textContent':'متن','innerHTML':'HTML داخلی','href':'لینک (href)','src':'آدرس (src)',
+    'alt':'متن جایگزین','placeholder':'پیام راهنما','value':'مقدار',
+    'class':'کلاس CSS','id':'شناسه (id)','name':'نام','type':'نوع',
+    'target':'باز کردن در','style':'استایل inline',
+    'duplicate':'⎘ کپی','delete':'✕ حذف','move-up':'↑ بالا','move-down':'↓ پایین',
+    'wrap':'⬡ wrap','unwrap':'unwrap','add-class':'＋ کلاس',
+  },
+  en: {
+    run:'Run', visual:'Visual', insert:'Insert Element', undo:'Undo', redo:'Redo',
+    format:'Format Code', copy:'Copy', download:'Download', elements:'Elements',
+    properties:'Properties', waiting:'— awaiting code —', 'empty-title':'Paste your HTML',
+    'empty-desc':'Click ▶ Run (or Ctrl+Enter) to preview. Enable 👁 Visual mode to click and edit any element.',
+    'no-sel':'No element selected\nEnable visual mode and click any element',
+    'tab-style':'Style','tab-content':'Content','tab-attrs':'Attributes','tab-actions':'Actions',
+    'chars-unit':'chars','lines-unit':'lines','insert-title':'Insert New Element',
+    'do-insert':'✓ Insert','code-mode':'CODE','visual-mode':'VISUAL',
+    'copied':'✓ Code copied','downloaded':'↓ File downloaded','cleared':'Cleared',
+    'run-msg':'▶ Running','formatted':'⌥ Code formatted','applied':'✓ Changes applied',
+    'deleted':'✕ Element deleted','duplicated':'⎘ Element duplicated','inserted':'＋ Element inserted',
+    'visual-on':'👁 Visual mode — click any element','visual-off':'✎ Code mode',
+    'no-code':'Please enter HTML code first','confirm-clear':'Clear everything?',
+    'confirm-del':'Delete this element?',
+    'history':'History','history-title':'Change History',
+    'hist-clear':'Clear History','hist-cleared':'History cleared',
+    'restore':'↩ Restore this version','restored':'✓ Version restored',
+    'copy-version':'⎘ Copy this version','diff-select':'Select a version from the list',
+    'hist-empty':'No changes recorded yet',
+    'hist-now':'Current','hist-label':'Version',
+    'color':'Color','bg':'Background','fontSize':'Font Size','fontWeight':'Weight',
+    'fontFamily':'Font Family','textAlign':'Text Align','lineHeight':'Line Height',
+    'letterSpacing':'Letter Spacing','padding':'Padding','paddingTop':'Top','paddingRight':'Right',
+    'paddingBottom':'Bottom','paddingLeft':'Left','margin':'Margin','marginTop':'Top',
+    'marginRight':'Right','marginBottom':'Bottom','marginLeft':'Left',
+    'width':'Width','height':'Height','maxWidth':'Max Width','minHeight':'Min Height',
+    'display':'Display','flexDirection':'Flex Dir','justifyContent':'Justify','alignItems':'Align',
+    'gap':'Gap','borderRadius':'Border Radius','border':'Border','boxShadow':'Box Shadow',
+    'opacity':'Opacity','transform':'Transform',
+    'textContent':'Text Content','innerHTML':'Inner HTML','href':'Link (href)','src':'Source (src)',
+    'alt':'Alt Text','placeholder':'Placeholder','value':'Value',
+    'class':'CSS Class','id':'Element ID','name':'Name','type':'Type',
+    'target':'Open in','style':'Inline Style',
+    'duplicate':'⎘ Duplicate','delete':'✕ Delete','move-up':'↑ Move Up','move-down':'↓ Move Down',
+    'wrap':'⬡ Wrap','unwrap':'Unwrap','add-class':'＋ Add Class',
+  }
 };
 
-/* ============================================================
-   DOM REFS
-   ============================================================ */
-const editor       = document.getElementById('code-editor');
-const frame        = document.getElementById('preview-frame');
-const emptyState   = document.getElementById('empty-state');
-const propPanel    = document.getElementById('prop-panel');
-const propGrid     = document.getElementById('prop-grid');
-const propActions  = document.getElementById('prop-actions');
-const propTagLabel = document.getElementById('prop-tag-label');
-const propPath     = document.getElementById('prop-path');
-const modeBadge    = document.getElementById('mode-indicator');
-const previewStatus= document.getElementById('preview-status');
-const charCount    = document.getElementById('char-count');
-const hint         = document.getElementById('hovered-hint');
-const toast        = document.getElementById('toast');
-const btnVisual    = document.getElementById('btn-toggle-visual');
+let lang = 'fa';
 
-/* ============================================================
-   TOAST
-   ============================================================ */
-let toastTimer;
-function showToast(msg, dur = 2000) {
-  toast.textContent = msg;
-  toast.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), dur);
+function t(key) { return LANGS[lang][key] || key; }
+
+function setLang(l) {
+  lang = l;
+  document.documentElement.lang = l === 'fa' ? 'fa-IR' : 'en';
+  document.documentElement.dir  = l === 'fa' ? 'rtl' : 'ltr';
+  document.getElementById('lang-fa').classList.toggle('active', l==='fa');
+  document.getElementById('lang-en').classList.toggle('active', l==='en');
+  // Fix lang-toggle position: always push to the far end opposite the logo
+  // RTL (fa): logo is on right → toggle goes to left → margin-right:auto pushes it left
+  // LTR (en): logo is on left  → toggle goes to right → margin-left:auto pushes it right
+  const lt = document.getElementById('lang-toggle');
+  lt.style.marginRight = l === 'fa' ? 'auto' : '0';
+  lt.style.marginLeft  = l === 'en' ? 'auto' : '0';
+  // update all data-t elements
+  document.querySelectorAll('[data-t]').forEach(el => {
+    const key = el.getAttribute('data-t');
+    if (LANGS[l][key]) el.textContent = LANGS[l][key];
+  });
+  document.querySelectorAll('[data-t-badge]').forEach(el => {
+    const key = el.getAttribute('data-t-badge');
+    if (LANGS[l][key]) el.textContent = LANGS[l][key];
+  });
+  // placeholder
+  document.getElementById('elem-search').placeholder = l==='fa' ? 'جستجو...' : 'search...';
+  document.getElementById('insert-search').placeholder = l==='fa' ? 'جستجو...' : 'search...';
+  // no-sel uses \n
+  document.getElementById('no-sel').innerHTML = t('no-sel').replace('\n','<br/>');
+  // refresh elements panel
+  renderElementsPalette();
+  // refresh badge
+  updateModeBadge();
+  // refresh history list if open
+  if (document.getElementById('history-modal').classList.contains('open')) renderHistoryList();
 }
 
-/* ============================================================
-   CHAR COUNT
-   ============================================================ */
-editor.addEventListener('input', () => {
-  charCount.textContent = editor.value.length.toLocaleString('fa') + ' کاراکتر';
+/* ══════════════════════════════════════════════════
+   ELEMENTS DEFINITIONS
+══════════════════════════════════════════════════ */
+const ELEMENTS = [
+  // TEXT
+  { group:'text', icon:'H', name_fa:'عنوان ۱', name_en:'Heading 1', tag:'h1',
+    defaultHtml:'<h1>عنوان اصلی</h1>', config:['text'] },
+  { group:'text', icon:'H₂', name_fa:'عنوان ۲', name_en:'Heading 2', tag:'h2',
+    defaultHtml:'<h2>عنوان فرعی</h2>', config:['text'] },
+  { group:'text', icon:'H₃', name_fa:'عنوان ۳', name_en:'Heading 3', tag:'h3',
+    defaultHtml:'<h3>عنوان کوچک</h3>', config:['text'] },
+  { group:'text', icon:'¶', name_fa:'پاراگراف', name_en:'Paragraph', tag:'p',
+    defaultHtml:'<p>متن پاراگراف را اینجا بنویسید.</p>', config:['text'] },
+  { group:'text', icon:'❝', name_fa:'نقل‌قول', name_en:'Blockquote', tag:'blockquote',
+    defaultHtml:'<blockquote>نقل‌قول</blockquote>', config:['text'] },
+  { group:'text', icon:'</>', name_fa:'کد', name_en:'Code Block', tag:'pre',
+    defaultHtml:'<pre><code>// your code here</code></pre>', config:['text'] },
+  { group:'text', icon:'—', name_fa:'خط افقی', name_en:'Divider', tag:'hr',
+    defaultHtml:'<hr/>', config:[] },
+
+  // MEDIA
+  { group:'media', icon:'🖼', name_fa:'تصویر', name_en:'Image', tag:'img',
+    defaultHtml:'<img src="https://picsum.photos/400/200" alt="image" style="max-width:100%"/>',
+    config:['src','alt'] },
+  { group:'media', icon:'▶', name_fa:'ویدیو', name_en:'Video', tag:'video',
+    defaultHtml:'<video controls style="max-width:100%"><source src="" type="video/mp4"/></video>',
+    config:['src'] },
+
+  // INTERACTIVE
+  { group:'interactive', icon:'🔵', name_fa:'دکمه', name_en:'Button', tag:'button',
+    defaultHtml:'<button style="padding:10px 24px;background:#e8a838;color:#000;border:none;cursor:pointer;font-size:15px;border-radius:4px;">دکمه</button>',
+    config:['text','href'] },
+  { group:'interactive', icon:'🔗', name_fa:'لینک', name_en:'Link', tag:'a',
+    defaultHtml:'<a href="#">لینک</a>', config:['text','href'] },
+  { group:'interactive', icon:'📝', name_fa:'ورودی متن', name_en:'Text Input', tag:'input',
+    defaultHtml:'<input type="text" placeholder="متن بنویسید..." style="padding:8px 12px;border:1px solid #ccc;border-radius:4px;width:100%;"/>',
+    config:['placeholder','type'] },
+  { group:'interactive', icon:'📄', name_fa:'متن چندخطی', name_en:'Textarea', tag:'textarea',
+    defaultHtml:'<textarea rows="4" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;"></textarea>',
+    config:['placeholder'] },
+  { group:'interactive', icon:'▽', name_fa:'انتخاب', name_en:'Select', tag:'select',
+    defaultHtml:'<select style="padding:7px 12px;border:1px solid #ccc;border-radius:4px;"><option>گزینه ۱</option><option>گزینه ۲</option></select>',
+    config:['text'] },
+  { group:'interactive', icon:'✓', name_fa:'چک‌باکس', name_en:'Checkbox', tag:'input-checkbox',
+    defaultHtml:'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox"/> گزینه</label>',
+    config:['text'] },
+
+  // LAYOUT
+  { group:'layout', icon:'⬜', name_fa:'باکس div', name_en:'Div Box', tag:'div',
+    defaultHtml:'<div style="padding:20px;background:#f0f0f0;">محتوا</div>', config:['text'] },
+  { group:'layout', icon:'≡', name_fa:'Section', name_en:'Section', tag:'section',
+    defaultHtml:'<section style="padding:40px 20px;">\n  <h2>عنوان بخش</h2>\n  <p>محتوای بخش</p>\n</section>',
+    config:['text'] },
+  { group:'layout', icon:'⊞', name_fa:'کارت', name_en:'Card', tag:'div-card',
+    defaultHtml:`<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:20px;max-width:320px;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+  <h3 style="margin-bottom:8px;">عنوان کارت</h3>
+  <p style="color:#666;font-size:14px;">توضیح کوتاه برای کارت.</p>
+  <button style="margin-top:14px;padding:8px 18px;background:#e8a838;color:#000;border:none;border-radius:4px;cursor:pointer;">بیشتر</button>
+</div>`, config:[] },
+  { group:'layout', icon:'☰', name_fa:'ناوبری', name_en:'Navbar', tag:'nav',
+    defaultHtml:`<nav style="display:flex;align-items:center;gap:20px;padding:14px 24px;background:#111;color:#fff;">
+  <strong style="color:#e8a838;">Logo</strong>
+  <a href="#" style="color:#fff;text-decoration:none;">Home</a>
+  <a href="#" style="color:#fff;text-decoration:none;">About</a>
+  <a href="#" style="color:#fff;text-decoration:none;">Contact</a>
+</nav>`, config:[] },
+  { group:'layout', icon:'⋮⋮', name_fa:'فلکس ردیف', name_en:'Flex Row', tag:'div-flex',
+    defaultHtml:'<div style="display:flex;gap:16px;flex-wrap:wrap;">\n  <div style="flex:1;min-width:120px;padding:16px;background:#f5f5f5;">ستون ۱</div>\n  <div style="flex:1;min-width:120px;padding:16px;background:#f5f5f5;">ستون ۲</div>\n  <div style="flex:1;min-width:120px;padding:16px;background:#f5f5f5;">ستون ۳</div>\n</div>',
+    config:[] },
+  { group:'layout', icon:'▤', name_fa:'جدول', name_en:'Table', tag:'table',
+    defaultHtml:`<table style="width:100%;border-collapse:collapse;font-size:14px;">
+  <thead><tr style="background:#f0f0f0;">
+    <th style="padding:10px;border:1px solid #ddd;text-align:right;">ستون ۱</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right;">ستون ۲</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right;">ستون ۳</th>
+  </tr></thead>
+  <tbody>
+    <tr><td style="padding:8px;border:1px solid #ddd;">مقدار</td><td style="padding:8px;border:1px solid #ddd;">مقدار</td><td style="padding:8px;border:1px solid #ddd;">مقدار</td></tr>
+    <tr style="background:#fafafa;"><td style="padding:8px;border:1px solid #ddd;">مقدار</td><td style="padding:8px;border:1px solid #ddd;">مقدار</td><td style="padding:8px;border:1px solid #ddd;">مقدار</td></tr>
+  </tbody>
+</table>`, config:[] },
+  { group:'layout', icon:'⋮', name_fa:'لیست', name_en:'List', tag:'ul',
+    defaultHtml:'<ul style="padding-right:20px;line-height:2;">\n  <li>آیتم اول</li>\n  <li>آیتم دوم</li>\n  <li>آیتم سوم</li>\n</ul>', config:[] },
+
+  // COMPONENT
+  { group:'component', icon:'🦸', name_fa:'Hero', name_en:'Hero Section', tag:'section-hero',
+    defaultHtml:`<section style="padding:80px 40px;text-align:center;background:linear-gradient(135deg,#0f0f1a,#1a1a2e);color:#fff;">
+  <h1 style="font-size:2.5rem;margin-bottom:16px;">عنوان اصلی سایت</h1>
+  <p style="font-size:1.1rem;color:#aaa;max-width:500px;margin:0 auto 28px;">توضیح کوتاهی درباره این سایت یا محصول.</p>
+  <button style="padding:12px 32px;background:#e8a838;color:#000;border:none;font-size:16px;border-radius:4px;cursor:pointer;font-weight:bold;">شروع کنید</button>
+</section>`, config:[] },
+  { group:'component', icon:'⭐', name_fa:'امتیاز', name_en:'Star Rating', tag:'div-stars',
+    defaultHtml:'<div style="color:#e8a838;font-size:24px;letter-spacing:3px;">★★★★☆</div>', config:[] },
+  { group:'component', icon:'🏷', name_fa:'بج / برچسب', name_en:'Badge', tag:'span-badge',
+    defaultHtml:'<span style="display:inline-block;padding:3px 12px;background:#e8a838;color:#000;border-radius:20px;font-size:12px;font-weight:bold;">جدید</span>', config:['text'] },
+  { group:'component', icon:'💬', name_fa:'Alert', name_en:'Alert Box', tag:'div-alert',
+    defaultHtml:'<div style="padding:14px 18px;background:#fff3cd;border-right:4px solid #e8a838;border-radius:4px;color:#333;">⚠️ این یک پیام هشدار است.</div>', config:['text'] },
+  { group:'component', icon:'📊', name_fa:'Progress Bar', name_en:'Progress Bar', tag:'div-progress',
+    defaultHtml:`<div style="background:#e0e0e0;border-radius:8px;overflow:hidden;height:12px;width:100%;">
+  <div style="width:65%;height:100%;background:#e8a838;border-radius:8px;"></div>
+</div>`, config:[] },
+];
+
+const GROUP_LABELS = {
+  fa: { text:'متن', media:'رسانه', interactive:'تعاملی', layout:'چیدمان', component:'کامپوننت' },
+  en: { text:'Text', media:'Media', interactive:'Interactive', layout:'Layout', component:'Component' },
+};
+
+function renderElementsPalette(filter='') {
+  const list = document.getElementById('elem-list');
+  list.innerHTML = '';
+  const groups = [...new Set(ELEMENTS.map(e=>e.group))];
+  const fl = filter.toLowerCase();
+  groups.forEach(g => {
+    const items = ELEMENTS.filter(e => {
+      if (!fl) return e.group === g;
+      const name = lang==='fa' ? e.name_fa : e.name_en;
+      return e.group===g && (name.toLowerCase().includes(fl) || e.tag.includes(fl));
+    });
+    if (!items.length) return;
+    const grpDiv = document.createElement('div');
+    grpDiv.className = 'elem-group';
+    const title = document.createElement('div');
+    title.className = 'elem-group-title';
+    title.textContent = GROUP_LABELS[lang][g] || g;
+    grpDiv.appendChild(title);
+    items.forEach(el => {
+      const btn = document.createElement('button');
+      btn.className = 'elem-btn';
+      const name = lang==='fa' ? el.name_fa : el.name_en;
+      btn.innerHTML = `<span class="icon">${el.icon}</span><span class="elabel">${name}</span><span class="etag">&lt;${el.tag}&gt;</span>`;
+      btn.addEventListener('click', () => openInsertModal(el));
+      grpDiv.appendChild(btn);
+    });
+    list.appendChild(grpDiv);
+  });
+}
+
+document.getElementById('elem-search').addEventListener('input', e => {
+  renderElementsPalette(e.target.value);
 });
 
-/* ============================================================
-   RUN — inject HTML into iframe
-   ============================================================ */
+/* ══════════════════════════════════════════════════
+   INSERT MODAL
+══════════════════════════════════════════════════ */
+let pendingEl = null;
+
+function renderInsertGrid(filter='') {
+  const grid = document.getElementById('insert-grid');
+  grid.innerHTML = '';
+  const fl = filter.toLowerCase();
+  ELEMENTS.filter(el => {
+    if (!fl) return true;
+    const name = lang==='fa' ? el.name_fa : el.name_en;
+    return name.toLowerCase().includes(fl) || el.tag.includes(fl);
+  }).forEach(el => {
+    const item = document.createElement('div');
+    item.className = 'insert-item';
+    const name = lang==='fa' ? el.name_fa : el.name_en;
+    item.innerHTML = `<div class="i-icon">${el.icon}</div><div class="i-name">${name}</div><div class="i-tag">&lt;${el.tag}&gt;</div>`;
+    item.addEventListener('click', () => openInsertModal(el));
+    grid.appendChild(item);
+  });
+}
+
+function openInsertModal(el) {
+  pendingEl = el;
+  document.getElementById('insert-modal').classList.add('open');
+  const cfg = document.getElementById('insert-config');
+  const fields = document.getElementById('insert-config-fields');
+  fields.innerHTML = '';
+  cfg.classList.remove('open');
+
+  if (el.config && el.config.length) {
+    cfg.classList.add('open');
+    el.config.forEach(key => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;flex-direction:column;gap:3px;';
+      const lbl = document.createElement('label');
+      lbl.textContent = t(key) || key;
+      lbl.style.cssText = 'font-size:10px;color:var(--text-dim);font-family:var(--mono);';
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.id = 'cfg_' + key;
+      inp.placeholder = key;
+      row.appendChild(lbl);
+      row.appendChild(inp);
+      fields.appendChild(row);
+    });
+  }
+}
+
+document.getElementById('btn-insert').addEventListener('click', () => {
+  document.getElementById('insert-modal').classList.add('open');
+  renderInsertGrid();
+});
+
+document.getElementById('close-insert').addEventListener('click', () => {
+  document.getElementById('insert-modal').classList.remove('open');
+});
+
+document.getElementById('insert-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('insert-modal'))
+    document.getElementById('insert-modal').classList.remove('open');
+});
+
+document.getElementById('insert-search').addEventListener('input', e => {
+  renderInsertGrid(e.target.value);
+});
+
+document.getElementById('do-insert-btn').addEventListener('click', () => {
+  if (!pendingEl) return;
+  let html = pendingEl.defaultHtml;
+  if (pendingEl.config) {
+    pendingEl.config.forEach(key => {
+      const inp = document.getElementById('cfg_' + key);
+      if (inp && inp.value.trim()) {
+        if (key === 'text') html = html.replace(/>([^<]+)</, `>${inp.value.trim()}<`);
+        if (key === 'href') html = html.replace(/href="[^"]*"/, `href="${inp.value.trim()}"`);
+        if (key === 'src')  html = html.replace(/src="[^"]*"/, `src="${inp.value.trim()}"`);
+        if (key === 'alt')  html = html.replace(/alt="[^"]*"/, `alt="${inp.value.trim()}"`);
+        if (key === 'placeholder') html = html.replace(/placeholder="[^"]*"/, `placeholder="${inp.value.trim()}"`);
+        if (key === 'type') html = html.replace(/type="[^"]*"/, `type="${inp.value.trim()}"`);
+      }
+    });
+  }
+  // insert at cursor in editor, or append before </body>
+  insertHTMLIntoEditor(html);
+  document.getElementById('insert-modal').classList.remove('open');
+  const elName = lang==='fa' ? pendingEl.name_fa : pendingEl.name_en;
+  recordHistory((lang==='fa'?'درج ':'Insert ') + elName);
+  showToast(t('inserted'), 'green');
+  // auto-run
+  setTimeout(run, 100);
+});
+
+function insertHTMLIntoEditor(html) {
+  const ed = document.getElementById('code-editor');
+  const cur = ed.selectionStart;
+  const val = ed.value;
+  // try to insert before </body>
+  if (val.toLowerCase().includes('</body>')) {
+    const idx = val.toLowerCase().lastIndexOf('</body>');
+    ed.value = val.slice(0, idx) + '\n' + html + '\n' + val.slice(idx);
+  } else if (val.trim()) {
+    ed.value = val + '\n' + html;
+  } else {
+    ed.value = `<!DOCTYPE html>\n<html lang="fa" dir="rtl">\n<head>\n<meta charset="UTF-8"/>\n<meta name="viewport" content="width=device-width,initial-scale=1.0"/>\n<title>صفحه من</title>\n</head>\n<body>\n${html}\n</body>\n</html>`;
+  }
+  updateEditorStats();
+  pushUndo();
+}
+
+/* ══════════════════════════════════════════════════
+   UNDO / REDO
+══════════════════════════════════════════════════ */
+let undoStack = [], redoStack = [], _lastVal = '';
+
+function pushUndo() {
+  const val = document.getElementById('code-editor').value;
+  if (val === _lastVal) return;
+  undoStack.push(_lastVal);
+  if (undoStack.length > 80) undoStack.shift();
+  redoStack = [];
+  _lastVal = val;
+}
+
+document.getElementById('code-editor').addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key==='z') { e.preventDefault(); undo(); }
+  if ((e.ctrlKey||e.metaKey) && (e.key==='y' || (e.shiftKey&&e.key==='z'))) { e.preventDefault(); redo(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); run(); }
+  // tab indent
+  if (e.key==='Tab') {
+    e.preventDefault();
+    const ed = e.target, s=ed.selectionStart, end=ed.selectionEnd;
+    ed.value = ed.value.slice(0,s)+'  '+ed.value.slice(end);
+    ed.selectionStart = ed.selectionEnd = s+2;
+  }
+});
+
+document.getElementById('code-editor').addEventListener('input', () => {
+  updateEditorStats();
+  // debounced push
+  clearTimeout(_undoTimer);
+  _undoTimer = setTimeout(pushUndo, 600);
+});
+let _undoTimer;
+
+function undo() {
+  if (!undoStack.length) return;
+  const ed = document.getElementById('code-editor');
+  redoStack.push(ed.value);
+  ed.value = undoStack.pop();
+  _lastVal = ed.value;
+  updateEditorStats();
+  showToast('↩ undo');
+}
+function redo() {
+  if (!redoStack.length) return;
+  const ed = document.getElementById('code-editor');
+  undoStack.push(ed.value);
+  ed.value = redoStack.pop();
+  _lastVal = ed.value;
+  updateEditorStats();
+  showToast('↪ redo');
+}
+
+document.getElementById('btn-undo').addEventListener('click', undo);
+document.getElementById('btn-redo').addEventListener('click', redo);
+
+/* ══════════════════════════════════════════════════
+   RUN
+══════════════════════════════════════════════════ */
+const frame = document.getElementById('preview-frame');
+
 function run() {
-  const src = editor.value.trim();
-  if (!src) { showToast('ابتدا کد HTML وارد کنید'); return; }
-
-  // inject the visual-edit overlay script into the html before rendering
-  const injected = injectOverlayScript(src);
-
-  const blob = new Blob([injected], { type: 'text/html' });
-  const url  = URL.createObjectURL(blob);
-  frame.src  = url;
-
-  emptyState.style.display = 'none';
-  previewStatus.textContent = '✓ در حال نمایش';
-  previewStatus.style.color = 'var(--accent2)';
-
-  // listen for messages from iframe
-  setupFrameListener();
-  showToast('▶ اجرا شد');
+  const src = document.getElementById('code-editor').value.trim();
+  if (!src) { showToast(t('no-code')); return; }
+  pushUndo();
+  const injected = injectOverlay(src);
+  const blob = new Blob([injected], {type:'text/html'});
+  frame.src = URL.createObjectURL(blob);
+  document.getElementById('empty-state').style.display = 'none';
+  const ps = document.getElementById('preview-status');
+  ps.textContent = '✓ running'; ps.style.color = 'var(--green)';
+  setupFrameMsg();
+  recordHistory(lang==='fa'?'اجرا':'Run');
+  showToast(t('run-msg'), 'accent');
 }
 
 document.getElementById('btn-run').addEventListener('click', run);
 
-// also run on Ctrl+Enter
-editor.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
-});
-
-/* ============================================================
-   INJECT OVERLAY SCRIPT
-   Adds click/hover listeners inside the iframe that post
-   messages back to the parent window.
-   ============================================================ */
-function injectOverlayScript(html) {
+/* ══════════════════════════════════════════════════
+   IFRAME OVERLAY INJECTION
+══════════════════════════════════════════════════ */
+function injectOverlay(html) {
   const script = `
-<script id="__ve_script">
+<script id="__ve">
 (function(){
-  var _sel = null;
-  var _overlay = null;
-  var _visualMode = false;
-
-  // receive commands from parent
-  window.addEventListener('message', function(e){
-    if (!e.data) return;
-    if (e.data.type === 'VE_SET_MODE') {
-      _visualMode = e.data.visual;
-      document.body.style.cursor = _visualMode ? 'crosshair' : '';
-      if (!_visualMode && _overlay) { _overlay.remove(); _overlay = null; }
-    }
-    if (e.data.type === 'VE_APPLY') {
-      applyProps(e.data.props);
-    }
-    if (e.data.type === 'VE_DELETE') {
-      if (_sel) { _sel.remove(); _sel = null; sendHTML(); }
-    }
-    if (e.data.type === 'VE_DUPLICATE') {
-      if (_sel) { var c = _sel.cloneNode(true); _sel.parentNode.insertBefore(c, _sel.nextSibling); sendHTML(); }
-    }
+  var vm=false, sel=null, ov=null;
+  window.addEventListener('message',function(e){
+    var d=e.data; if(!d||!d.t) return;
+    if(d.t==='mode'){vm=d.v; document.body.style.cursor=vm?'crosshair':''; if(!vm&&ov){ov.remove();ov=null;}}
+    if(d.t==='apply') applyProps(d.p);
+    if(d.t==='del'){if(sel){sel.remove();sel=null;emit();}}
+    if(d.t==='dup'){if(sel){var c=sel.cloneNode(true);sel.parentNode.insertBefore(c,sel.nextSibling);emit();}}
+    if(d.t==='up'){if(sel&&sel.previousElementSibling){sel.parentNode.insertBefore(sel,sel.previousElementSibling);emit();}}
+    if(d.t==='dn'){if(sel&&sel.nextElementSibling){sel.parentNode.insertBefore(sel.nextElementSibling,sel);emit();}}
+    if(d.t==='wrap'){if(sel){var w=document.createElement('div');w.style.cssText='padding:10px;border:1px dashed #aaa;';sel.parentNode.insertBefore(w,sel);w.appendChild(sel);emit();}}
   });
-
-  function applyProps(props) {
-    if (!_sel) return;
-    if (props.text !== undefined && _sel.childElementCount === 0) {
-      _sel.textContent = props.text;
+  function applyProps(p){
+    if(!sel) return;
+    if(p.textContent!==undefined && sel.childElementCount===0) sel.textContent=p.textContent;
+    if(p.innerHTML!==undefined) sel.innerHTML=p.innerHTML;
+    var smap={color:'color',bg:'backgroundColor',fontSize:'fontSize',fontWeight:'fontWeight',
+      fontFamily:'fontFamily',textAlign:'textAlign',lineHeight:'lineHeight',letterSpacing:'letterSpacing',
+      padding:'padding',paddingTop:'paddingTop',paddingRight:'paddingRight',paddingBottom:'paddingBottom',paddingLeft:'paddingLeft',
+      margin:'margin',marginTop:'marginTop',marginRight:'marginRight',marginBottom:'marginBottom',marginLeft:'marginLeft',
+      width:'width',height:'height',maxWidth:'maxWidth',minHeight:'minHeight',display:'display',
+      flexDirection:'flexDirection',justifyContent:'justifyContent',alignItems:'alignItems',gap:'gap',
+      borderRadius:'borderRadius',border:'border',boxShadow:'boxShadow',opacity:'opacity',transform:'transform'};
+    Object.keys(smap).forEach(function(k){if(p[k]!==undefined) sel.style[smap[k]]=p[k];});
+    if(p.href!==undefined) sel.setAttribute('href',p.href);
+    if(p.src!==undefined)  sel.setAttribute('src',p.src);
+    if(p.alt!==undefined)  sel.setAttribute('alt',p.alt);
+    if(p.placeholder!==undefined) sel.setAttribute('placeholder',p.placeholder);
+    if(p.value!==undefined) sel.value=p.value;
+    if(p.id!==undefined) sel.id=p.id;
+    if(p.name!==undefined) sel.setAttribute('name',p.name);
+    if(p.type!==undefined && sel.tagName==='INPUT') sel.type=p.type;
+    if(p.target!==undefined) sel.setAttribute('target',p.target);
+    if(p.className!==undefined) sel.className=p.className;
+    emit();
+  }
+  function emit(){
+    window.parent.postMessage({t:'html',html:document.documentElement.outerHTML},'*');
+  }
+  function getPath(el){
+    var parts=[],cur=el;
+    while(cur&&cur!==document.body&&cur.tagName){
+      var idx=Array.from(cur.parentNode?cur.parentNode.children:[]).indexOf(cur);
+      parts.unshift(cur.tagName.toLowerCase()+(idx>0?'['+idx+']':''));
+      cur=cur.parentNode;
     }
-    if (props.href !== undefined) _sel.href = props.href;
-    if (props.src  !== undefined) _sel.src  = props.src;
-    if (props.alt  !== undefined) _sel.alt  = props.alt;
-    // style props
-    var styleMap = {
-      color:'color', fontSize:'font-size', fontWeight:'font-weight',
-      bg:'background-color', padding:'padding', margin:'margin',
-      textAlign:'text-align', borderRadius:'border-radius',
-      width:'width', height:'height', display:'display'
-    };
-    Object.keys(styleMap).forEach(function(k){
-      if (props[k] !== undefined) {
-        _sel.style[k.replace(/([A-Z])/g, '-$1').toLowerCase()] = props[k];
+    return parts.join(' > ');
+  }
+  function getCS(el,prop){return window.getComputedStyle(el)[prop]||'';}
+  document.addEventListener('mouseover',function(e){
+    if(!vm) return; e.stopPropagation();
+    if(ov){ov.remove();}
+    var el=e.target;
+    if(el===document.body||el===document.documentElement) return;
+    var r=el.getBoundingClientRect();
+    ov=document.createElement('div');
+    Object.assign(ov.style,{position:'fixed',pointerEvents:'none',zIndex:'99999',
+      top:r.top+'px',left:r.left+'px',width:r.width+'px',height:r.height+'px',
+      outline:'2px solid #e8a838',background:'rgba(232,168,56,.06)'});
+    var label=document.createElement('div');
+    Object.assign(label.style,{position:'absolute',top:'-20px',right:'0',
+      background:'#e8a838',color:'#000',fontSize:'10px',padding:'1px 6px',
+      fontFamily:'monospace',whiteSpace:'nowrap'});
+    label.textContent='<'+el.tagName.toLowerCase()+'>';
+    ov.appendChild(label);
+    document.body.appendChild(ov);
+    window.parent.postMessage({t:'hover',tag:el.tagName.toLowerCase()},'*');
+  },true);
+  document.addEventListener('mouseout',function(){
+    if(ov){ov.remove();ov=null;}
+    window.parent.postMessage({t:'hover',tag:null},'*');
+  },true);
+  document.addEventListener('click',function(e){
+    if(!vm) return; e.preventDefault(); e.stopPropagation();
+    sel=e.target;
+    var cs=window.getComputedStyle(sel);
+    function gs(p){return sel.style[p]||cs[p]||'';}
+    window.parent.postMessage({t:'sel',
+      tag:sel.tagName.toLowerCase(),
+      path:getPath(sel),
+      textContent:sel.childElementCount===0?sel.textContent:'',
+      innerHTML:sel.innerHTML,
+      href:sel.getAttribute('href')||'',
+      src:sel.getAttribute('src')||'',
+      alt:sel.getAttribute('alt')||'',
+      placeholder:sel.getAttribute('placeholder')||'',
+      value:sel.value||'',
+      id:sel.id||'',
+      name:sel.getAttribute('name')||'',
+      type:sel.getAttribute('type')||'',
+      target:sel.getAttribute('target')||'',
+      className:sel.className||'',
+      style:{
+        color:sel.style.color||r2h(cs.color),
+        bg:sel.style.backgroundColor||r2h(cs.backgroundColor),
+        fontSize:sel.style.fontSize||cs.fontSize,
+        fontWeight:sel.style.fontWeight||cs.fontWeight,
+        fontFamily:sel.style.fontFamily||cs.fontFamily,
+        textAlign:sel.style.textAlign||cs.textAlign,
+        lineHeight:sel.style.lineHeight||cs.lineHeight,
+        letterSpacing:sel.style.letterSpacing||cs.letterSpacing,
+        padding:sel.style.padding||'',
+        paddingTop:sel.style.paddingTop||cs.paddingTop,
+        paddingRight:sel.style.paddingRight||cs.paddingRight,
+        paddingBottom:sel.style.paddingBottom||cs.paddingBottom,
+        paddingLeft:sel.style.paddingLeft||cs.paddingLeft,
+        margin:sel.style.margin||'',
+        marginTop:sel.style.marginTop||cs.marginTop,
+        marginRight:sel.style.marginRight||cs.marginRight,
+        marginBottom:sel.style.marginBottom||cs.marginBottom,
+        marginLeft:sel.style.marginLeft||cs.marginLeft,
+        width:sel.style.width||'',
+        height:sel.style.height||'',
+        maxWidth:sel.style.maxWidth||'',
+        minHeight:sel.style.minHeight||'',
+        display:sel.style.display||cs.display,
+        flexDirection:sel.style.flexDirection||cs.flexDirection,
+        justifyContent:sel.style.justifyContent||cs.justifyContent,
+        alignItems:sel.style.alignItems||cs.alignItems,
+        gap:sel.style.gap||cs.gap||'',
+        borderRadius:sel.style.borderRadius||cs.borderRadius,
+        border:sel.style.border||'',
+        boxShadow:sel.style.boxShadow||'',
+        opacity:sel.style.opacity||cs.opacity,
+        transform:sel.style.transform||'',
       }
-    });
-    sendHTML();
-  }
-
-  function sendHTML() {
-    window.parent.postMessage({ type: 'VE_HTML', html: document.documentElement.outerHTML }, '*');
-  }
-
-  function getPath(el) {
-    var parts = [];
-    var cur = el;
-    while (cur && cur !== document.body && cur.tagName) {
-      var tag = cur.tagName.toLowerCase();
-      var idx = Array.from(cur.parentNode ? cur.parentNode.children : []).indexOf(cur);
-      parts.unshift(tag + (idx > 0 ? ':nth-child(' + (idx+1) + ')' : ''));
-      cur = cur.parentNode;
-    }
-    return 'body › ' + parts.join(' › ');
-  }
-
-  document.addEventListener('mouseover', function(e){
-    if (!_visualMode) return;
-    e.stopPropagation();
-    // highlight
-    if (_overlay) _overlay.remove();
-    var el = e.target;
-    if (el === document.body || el === document.documentElement) return;
-    var r = el.getBoundingClientRect();
-    _overlay = document.createElement('div');
-    Object.assign(_overlay.style, {
-      position:'fixed', pointerEvents:'none', zIndex:'99999',
-      top: r.top + 'px', left: r.left + 'px',
-      width: r.width + 'px', height: r.height + 'px',
-      outline: '2px solid #e8a838',
-      background: 'rgba(232,168,56,.07)'
-    });
-    document.body.appendChild(_overlay);
-    window.parent.postMessage({ type:'VE_HOVER', tag: el.tagName.toLowerCase() }, '*');
-  });
-
-  document.addEventListener('mouseout', function(){
-    if (_overlay) { _overlay.remove(); _overlay = null; }
-    window.parent.postMessage({ type:'VE_HOVER', tag: null }, '*');
-  });
-
-  document.addEventListener('click', function(e){
-    if (!_visualMode) return;
-    e.preventDefault();
-    e.stopPropagation();
-    _sel = e.target;
-    var cs = window.getComputedStyle(_sel);
-    window.parent.postMessage({
-      type: 'VE_SELECT',
-      tag:  _sel.tagName.toLowerCase(),
-      path: getPath(_sel),
-      text: _sel.childElementCount === 0 ? _sel.textContent : '',
-      href: _sel.href || _sel.getAttribute('href') || '',
-      src:  _sel.src  || _sel.getAttribute('src')  || '',
-      alt:  _sel.alt  || '',
-      style: {
-        color:        _sel.style.color        || cs.color,
-        fontSize:     _sel.style.fontSize     || cs.fontSize,
-        fontWeight:   _sel.style.fontWeight   || cs.fontWeight,
-        bg:           _sel.style.backgroundColor || cs.backgroundColor,
-        padding:      _sel.style.padding      || cs.padding,
-        textAlign:    _sel.style.textAlign    || cs.textAlign,
-        borderRadius: _sel.style.borderRadius || cs.borderRadius,
-        width:        _sel.style.width        || '',
-        height:       _sel.style.height       || '',
-        display:      _sel.style.display      || cs.display,
-      }
-    }, '*');
-  }, true);
+    },'*');
+  },true);
+  function r2h(s){if(!s||s.startsWith('#'))return s||'';var m=s.match(/\\d+/g);if(!m||m.length<3)return s;return'#'+m.slice(0,3).map(function(x){return parseInt(x).toString(16).padStart(2,'0');}).join('');}
 })();
 <\/script>`;
-
-  // inject before </body> or at end
-  if (html.includes('</body>')) {
-    return html.replace('</body>', script + '</body>');
-  }
+  if (html.includes('</body>')) return html.replace('</body>', script+'</body>');
   return html + script;
 }
 
-/* ============================================================
-   FRAME LISTENER
-   ============================================================ */
-let frameListenerSetup = false;
-function setupFrameListener() {
-  if (frameListenerSetup) return;
-  frameListenerSetup = true;
-
-  window.addEventListener('message', (e) => {
-    const d = e.data;
-    if (!d || !d.type) return;
-
-    if (d.type === 'VE_HOVER') {
-      if (d.tag) {
-        hint.textContent = '<' + d.tag + '>';
-        hint.style.display = 'block';
-      } else {
-        hint.style.display = 'none';
-      }
+/* ══════════════════════════════════════════════════
+   FRAME MESSAGES
+══════════════════════════════════════════════════ */
+let _msgReady = false;
+function setupFrameMsg() {
+  if (_msgReady) return; _msgReady = true;
+  window.addEventListener('message', e => {
+    const d = e.data; if (!d||!d.t) return;
+    if (d.t==='hover') {
+      const hint = document.getElementById('tag-hint');
+      if (d.tag) { hint.textContent='<'+d.tag+'>'; hint.style.display='block'; }
+      else hint.style.display='none';
     }
-
-    if (d.type === 'VE_SELECT') {
-      openPropPanel(d);
-    }
-
-    if (d.type === 'VE_HTML') {
-      // update editor with new HTML (sync back)
-      editor.value = d.html;
-      charCount.textContent = editor.value.length.toLocaleString('fa') + ' کاراکتر';
-      showToast('✓ کد به‌روز شد');
+    if (d.t==='sel')  buildPropPanel(d);
+    if (d.t==='html') {
+      document.getElementById('code-editor').value = d.html;
+      updateEditorStats();
+      recordHistory(lang==='fa'?'ویرایش بصری':'Visual Edit');
+      showToast(t('applied'), 'green');
     }
   });
-
-  // track mouse over iframe area to show hint
-  document.addEventListener('mousemove', (e) => {
-    hint.style.top  = (e.clientY + 14) + 'px';
-    hint.style.left = (e.clientX + 14) + 'px';
+  document.addEventListener('mousemove', e => {
+    const h = document.getElementById('tag-hint');
+    h.style.top  = (e.clientY+14)+'px';
+    h.style.left = (e.clientX+14)+'px';
   });
 }
 
-/* ============================================================
-   VISUAL MODE TOGGLE
-   ============================================================ */
-document.getElementById('btn-toggle-visual').addEventListener('click', () => {
-  state.visualMode = !state.visualMode;
-  modeBadge.textContent = state.visualMode ? 'VISUAL' : 'CODE';
-  modeBadge.className   = state.visualMode ? 'visual' : 'code';
-  btnVisual.textContent = state.visualMode ? '✕ خروج از بصری' : '👁 بصری';
+/* ══════════════════════════════════════════════════
+   VISUAL MODE
+══════════════════════════════════════════════════ */
+let visualMode = false;
+function updateModeBadge() {
+  const badge = document.getElementById('mode-badge');
+  badge.textContent = visualMode ? t('visual-mode') : t('code-mode');
+  badge.className   = visualMode ? 'visual' : 'code';
+}
 
-  frame.contentWindow?.postMessage({ type: 'VE_SET_MODE', visual: state.visualMode }, '*');
-
-  if (!state.visualMode) {
-    closePropPanel();
-    hint.style.display = 'none';
-  }
-  showToast(state.visualMode ? '👁 حالت بصری فعال — روی عنصرها کلیک کن' : '✎ حالت کد');
+document.getElementById('btn-visual').addEventListener('click', () => {
+  visualMode = !visualMode;
+  const btn = document.getElementById('btn-visual');
+  btn.classList.toggle('on', visualMode);
+  updateModeBadge();
+  frame.contentWindow?.postMessage({t:'mode', v:visualMode}, '*');
+  if (!visualMode) { document.getElementById('tag-hint').style.display='none'; }
+  showToast(visualMode ? t('visual-on') : t('visual-off'), visualMode?'green':'accent');
 });
 
-/* ============================================================
-   PROPERTY PANEL
-   ============================================================ */
-function openPropPanel(data) {
-  propTagLabel.textContent = '<' + data.tag + '>';
-  propPath.textContent     = data.path;
-  propGrid.innerHTML       = '';
-  propActions.innerHTML    = '';
+/* ══════════════════════════════════════════════════
+   PROP PANEL
+══════════════════════════════════════════════════ */
+const PROP_TABS = ['style','content','attrs','actions'];
+let activeTab = 'style';
 
-  const tag = data.tag;
-  const st  = data.style || {};
+document.querySelectorAll('.prop-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeTab = btn.dataset.tab;
+    document.querySelectorAll('.prop-tab').forEach(b => b.classList.toggle('active', b===btn));
+    PROP_TABS.forEach(tab => {
+      document.getElementById('tab-'+tab+'-content').style.display = tab===activeTab ? '' : 'none';
+    });
+  });
+});
 
-  const fields = [];
+document.getElementById('prop-close').addEventListener('click', () => {
+  document.getElementById('no-sel').style.display = '';
+  document.getElementById('prop-body').style.display = 'none';
+  document.getElementById('prop-tag-name').style.display = 'none';
+  document.getElementById('status-sel').textContent = '—';
+});
 
-  // text content (only for leaf elements)
-  if (data.text !== undefined && !['img','input','br','hr'].includes(tag)) {
-    fields.push({ key:'text', label:'متن', type:'textarea', val: data.text });
+function buildPropPanel(data) {
+  document.getElementById('no-sel').style.display = 'none';
+  document.getElementById('prop-body').style.display = '';
+  document.getElementById('prop-tag-name').textContent = '<'+data.tag+'>';
+  document.getElementById('prop-tag-name').style.display = '';
+  document.getElementById('status-sel').textContent = '<'+data.tag+'> '+data.path;
+
+  const st = data.style || {};
+
+  /* ─── STYLE TAB ─── */
+  const styleDiv = document.getElementById('tab-style-content');
+  styleDiv.innerHTML = '';
+
+  function addSection(title) {
+    const h = document.createElement('div');
+    h.className = 'prop-section-title'; h.textContent = title;
+    styleDiv.appendChild(h);
   }
-  if (tag === 'a')   fields.push({ key:'href', label:'لینک (href)', type:'text', val: data.href });
-  if (tag === 'img') fields.push({ key:'src', label:'آدرس تصویر', type:'text', val: data.src });
-  if (tag === 'img') fields.push({ key:'alt', label:'متن جایگزین', type:'text', val: data.alt });
-
-  // style fields
-  fields.push({ key:'color',        label:'رنگ متن',       type:'color-text', val: rgb2hex(st.color) });
-  fields.push({ key:'bg',           label:'پس‌زمینه',      type:'color-text', val: rgb2hex(st.bg) });
-  fields.push({ key:'fontSize',     label:'اندازه فونت',   type:'text', val: st.fontSize });
-  fields.push({ key:'fontWeight',   label:'ضخامت فونت',    type:'select',
-    options:['400','500','600','700','800','bold','normal'], val: st.fontWeight });
-  fields.push({ key:'textAlign',    label:'تراز متن',      type:'select',
-    options:['right','left','center','justify'], val: st.textAlign });
-  fields.push({ key:'padding',      label:'پدینگ',         type:'text', val: st.padding });
-  fields.push({ key:'borderRadius', label:'گوشه‌گرد',      type:'text', val: st.borderRadius });
-  fields.push({ key:'width',        label:'عرض',           type:'text', val: st.width });
-  fields.push({ key:'display',      label:'display',       type:'select',
-    options:['block','inline','inline-block','flex','grid','none',''], val: st.display });
-
-  fields.forEach(f => {
-    const row = document.createElement('div');
-    row.className = 'prop-row';
-    const lbl = document.createElement('label');
-    lbl.textContent = f.label;
+  function addRow(key, type='text', opts=null, val='') {
+    const row = document.createElement('div'); row.className='prop-row';
+    const lbl = document.createElement('label'); lbl.textContent = t(key);
     row.appendChild(lbl);
-
     let inp;
-    if (f.type === 'textarea') {
-      inp = document.createElement('textarea');
-      inp.rows = 2;
-    } else if (f.type === 'select') {
-      inp = document.createElement('select');
-      f.options.forEach(o => {
-        const opt = document.createElement('option');
-        opt.value = o; opt.textContent = o || '(پیش‌فرض)';
-        if (o === f.val) opt.selected = true;
-        inp.appendChild(opt);
+    if (type==='color') {
+      const wrap = document.createElement('div'); wrap.className='color-row';
+      const cp = document.createElement('input'); cp.type='color'; cp.className='color-picker';
+      cp.value = val||'#000000'; cp.dataset.key=key;
+      const ti = document.createElement('input'); ti.type='text'; ti.className='prop-input';
+      ti.value=val||''; ti.dataset.key=key; ti.style.flex='1';
+      cp.addEventListener('input',()=>{ ti.value=cp.value; });
+      ti.addEventListener('input',()=>{ if(/^#[0-9a-f]{6}$/i.test(ti.value)) cp.value=ti.value; });
+      wrap.appendChild(cp); wrap.appendChild(ti); row.appendChild(wrap);
+      styleDiv.appendChild(row); return;
+    } else if (type==='select') {
+      inp = document.createElement('select'); inp.className='prop-select';
+      inp.dataset.key=key;
+      (opts||[]).forEach(o=>{
+        const op=document.createElement('option'); op.value=o; op.textContent=o;
+        if(o===val) op.selected=true;
+        inp.appendChild(op);
       });
-    } else if (f.type === 'color-text') {
-      // color picker + text combo
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex;gap:4px;align-items:center';
-      const colorPick = document.createElement('input');
-      colorPick.type = 'color';
-      colorPick.value = f.val || '#000000';
-      colorPick.style.cssText = 'width:28px;height:26px;padding:1px;background:#0a0a0a;border:1px solid #242424;cursor:pointer;';
-      const textPick = document.createElement('input');
-      textPick.type = 'text';
-      textPick.value = f.val || '';
-      textPick.style.flex = '1';
-      textPick.dataset.key = f.key;
-      colorPick.addEventListener('input', () => { textPick.value = colorPick.value; });
-      textPick.addEventListener('input', () => {
-        if (/^#[0-9a-fA-F]{6}$/.test(textPick.value)) colorPick.value = textPick.value;
-      });
-      wrap.appendChild(colorPick);
-      wrap.appendChild(textPick);
-      // use textPick as the main inp for value reading
-      row.appendChild(wrap);
-      textPick.dataset.key = f.key;
-      propGrid.appendChild(row);
-      return; // handled separately
     } else {
-      inp = document.createElement('input');
-      inp.type = 'text';
+      inp = document.createElement('input'); inp.type='text'; inp.className='prop-input';
+      inp.dataset.key=key; inp.value=val||'';
     }
+    row.appendChild(inp); styleDiv.appendChild(row);
+  }
+  function addGrid2(pairs) {
+    const g = document.createElement('div'); g.className='prop-grid-2';
+    pairs.forEach(([key,val])=>{
+      const row = document.createElement('div'); row.className='prop-row';
+      const lbl = document.createElement('label'); lbl.textContent=t(key);
+      const inp = document.createElement('input'); inp.type='text'; inp.className='prop-input';
+      inp.dataset.key=key; inp.value=val||'';
+      row.appendChild(lbl); row.appendChild(inp); g.appendChild(row);
+    });
+    styleDiv.appendChild(g);
+  }
 
-    inp.value = f.val || '';
-    inp.dataset.key = f.key;
-    row.appendChild(inp);
-    propGrid.appendChild(row);
-  });
+  addSection(lang==='fa'?'رنگ':'Color');
+  addRow('color','color', null, st.color);
+  addRow('bg','color', null, st.bg);
+  addRow('opacity','text',null,st.opacity);
 
-  // Actions
+  addSection(lang==='fa'?'تایپوگرافی':'Typography');
+  addRow('fontSize','text',null,st.fontSize);
+  addRow('fontWeight','select',['','100','200','300','400','500','600','700','800','bold','normal'],st.fontWeight);
+  addRow('fontFamily','text',null,st.fontFamily);
+  addRow('textAlign','select',['','right','left','center','justify'],st.textAlign);
+  addRow('lineHeight','text',null,st.lineHeight);
+  addRow('letterSpacing','text',null,st.letterSpacing);
+
+  addSection(lang==='fa'?'فضا':'Spacing');
+  addRow('padding','text',null,st.padding);
+  addGrid2([['paddingTop',st.paddingTop],['paddingRight',st.paddingRight],['paddingBottom',st.paddingBottom],['paddingLeft',st.paddingLeft]]);
+  addRow('margin','text',null,st.margin);
+  addGrid2([['marginTop',st.marginTop],['marginRight',st.marginRight],['marginBottom',st.marginBottom],['marginLeft',st.marginLeft]]);
+
+  addSection(lang==='fa'?'اندازه':'Size');
+  addGrid2([['width',st.width],['height',st.height],['maxWidth',st.maxWidth],['minHeight',st.minHeight]]);
+
+  addSection(lang==='fa'?'نمایش':'Layout');
+  addRow('display','select',['','block','inline','inline-block','flex','grid','inline-flex','none'],st.display);
+  addRow('flexDirection','select',['','row','row-reverse','column','column-reverse'],st.flexDirection);
+  addRow('justifyContent','select',['','flex-start','flex-end','center','space-between','space-around'],st.justifyContent);
+  addRow('alignItems','select',['','flex-start','flex-end','center','stretch','baseline'],st.alignItems);
+  addRow('gap','text',null,st.gap);
+
+  addSection(lang==='fa'?'ظاهر':'Appearance');
+  addRow('borderRadius','text',null,st.borderRadius);
+  addRow('border','text',null,st.border);
+  addRow('boxShadow','text',null,st.boxShadow);
+  addRow('transform','text',null,st.transform);
+
+  // apply button
   const applyBtn = document.createElement('button');
-  applyBtn.className = 'btn primary';
-  applyBtn.textContent = '✓ اعمال تغییرات';
-  applyBtn.addEventListener('click', applyChanges);
-  propActions.appendChild(applyBtn);
+  applyBtn.className='prop-apply'; applyBtn.textContent=lang==='fa'?'✓ اعمال':'✓ Apply';
+  applyBtn.addEventListener('click', applyAllProps);
+  styleDiv.appendChild(applyBtn);
 
-  const dupBtn = document.createElement('button');
-  dupBtn.className = 'btn';
-  dupBtn.textContent = '⎘ کپی عنصر';
-  dupBtn.addEventListener('click', () => {
-    frame.contentWindow?.postMessage({ type:'VE_DUPLICATE' }, '*');
+  // Enter key to apply
+  styleDiv.addEventListener('keydown', e => {
+    if (e.key==='Enter' && e.target.tagName==='INPUT') applyAllProps();
   });
-  propActions.appendChild(dupBtn);
 
-  const delBtn = document.createElement('button');
-  delBtn.className = 'btn red';
-  delBtn.textContent = '✕ حذف عنصر';
-  delBtn.addEventListener('click', () => {
-    if (confirm('این عنصر حذف شود؟')) {
-      frame.contentWindow?.postMessage({ type:'VE_DELETE' }, '*');
-      closePropPanel();
-    }
+  /* ─── CONTENT TAB ─── */
+  const contentDiv = document.getElementById('tab-content-content');
+  contentDiv.innerHTML='';
+  const isLeaf = data.tag!=='img' && data.tag!=='input' && data.tag!=='br' && data.tag!=='hr';
+  if (isLeaf) {
+    const r1=document.createElement('div'); r1.className='prop-row';
+    const l1=document.createElement('label'); l1.textContent=t('textContent');
+    const i1=document.createElement('textarea'); i1.className='prop-textarea prop-input';
+    i1.dataset.key='textContent'; i1.value=data.textContent||''; i1.rows=3;
+    r1.appendChild(l1); r1.appendChild(i1); contentDiv.appendChild(r1);
+
+    const r2=document.createElement('div'); r2.className='prop-row';
+    const l2=document.createElement('label'); l2.textContent=t('innerHTML');
+    const i2=document.createElement('textarea'); i2.className='prop-textarea prop-input';
+    i2.dataset.key='innerHTML'; i2.value=data.innerHTML||''; i2.rows=5;
+    r2.appendChild(l2); r2.appendChild(i2); contentDiv.appendChild(r2);
+  }
+  const applyC=document.createElement('button');
+  applyC.className='prop-apply'; applyC.textContent=lang==='fa'?'✓ اعمال':'✓ Apply';
+  applyC.addEventListener('click', applyAllProps);
+  contentDiv.appendChild(applyC);
+
+  /* ─── ATTRS TAB ─── */
+  const attrsDiv = document.getElementById('tab-attrs-content');
+  attrsDiv.innerHTML='';
+  const attrFields = [
+    ['href', data.href], ['src', data.src], ['alt', data.alt],
+    ['placeholder', data.placeholder], ['value', data.value],
+    ['id', data.id], ['name', data.name], ['type', data.type],
+    ['target', data.target], ['class', data.className],
+  ];
+  attrFields.forEach(([key,val])=>{
+    const row=document.createElement('div'); row.className='prop-row';
+    const lbl=document.createElement('label'); lbl.textContent=t(key)||key;
+    const inp=document.createElement('input'); inp.type='text'; inp.className='prop-input';
+    inp.dataset.key = key==='class'?'className':key;
+    inp.value=val||'';
+    row.appendChild(lbl); row.appendChild(inp); attrsDiv.appendChild(row);
   });
-  propActions.appendChild(delBtn);
+  const applyA=document.createElement('button');
+  applyA.className='prop-apply'; applyA.textContent=lang==='fa'?'✓ اعمال':'✓ Apply';
+  applyA.addEventListener('click', applyAllProps);
+  attrsDiv.appendChild(applyA);
 
-  propPanel.classList.add('open');
+  /* ─── ACTIONS TAB ─── */
+  const actDiv = document.getElementById('tab-actions-content');
+  actDiv.innerHTML='';
+  const actRow1=document.createElement('div'); actRow1.className='prop-action-row';
+  function actBtn(labelKey, cls, handler) {
+    const b=document.createElement('button');
+    b.className='prop-action-btn '+cls; b.textContent=t(labelKey);
+    b.addEventListener('click', handler); return b;
+  }
+  actRow1.appendChild(actBtn('duplicate','green-a',()=>{ frame.contentWindow?.postMessage({t:'dup'},'*'); }));
+  actRow1.appendChild(actBtn('move-up','blue-a',()=>{ frame.contentWindow?.postMessage({t:'up'},'*'); }));
+  actRow1.appendChild(actBtn('move-down','blue-a',()=>{ frame.contentWindow?.postMessage({t:'dn'},'*'); }));
+  actRow1.appendChild(actBtn('wrap','',()=>{ frame.contentWindow?.postMessage({t:'wrap'},'*'); }));
+  actDiv.appendChild(actRow1);
+  const actRow2=document.createElement('div'); actRow2.className='prop-action-row'; actRow2.style.marginTop='6px';
+  actRow2.appendChild(actBtn('delete','danger',()=>{
+    if(confirm(t('confirm-del'))) { frame.contentWindow?.postMessage({t:'del'},'*'); showToast(t('deleted')); }
+  }));
+  actDiv.appendChild(actRow2);
 }
 
-function applyChanges() {
+function applyAllProps() {
   const props = {};
-  propGrid.querySelectorAll('[data-key]').forEach(inp => {
-    props[inp.dataset.key] = inp.value;
+  document.querySelectorAll('#prop-body [data-key]').forEach(inp => {
+    const k = inp.dataset.key;
+    if (k && inp.value !== undefined) props[k] = inp.value;
   });
-  frame.contentWindow?.postMessage({ type:'VE_APPLY', props }, '*');
+  frame.contentWindow?.postMessage({t:'apply', p:props}, '*');
 }
 
-function closePropPanel() {
-  propPanel.classList.remove('open');
+/* ══════════════════════════════════════════════════
+   EDITOR STATS
+══════════════════════════════════════════════════ */
+function updateEditorStats() {
+  const val = document.getElementById('code-editor').value;
+  const chars = val.length;
+  const lines = val.split('\n').length;
+  document.getElementById('char-count').textContent = chars.toLocaleString();
+  document.getElementById('line-count').textContent = lines + ' ln';
+  document.getElementById('status-chars').innerHTML = chars.toLocaleString()+' <span data-t="chars-unit">'+t('chars-unit')+'</span>';
+  document.getElementById('status-lines').innerHTML = lines+' <span data-t="lines-unit">'+t('lines-unit')+'</span>';
 }
 
-document.getElementById('close-prop').addEventListener('click', closePropPanel);
-
-// live apply on Enter in text inputs
-propGrid.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.target.tagName === 'INPUT') applyChanges();
+/* ══════════════════════════════════════════════════
+   FORMAT CODE (basic beautifier)
+══════════════════════════════════════════════════ */
+document.getElementById('btn-format').addEventListener('click', () => {
+  const ed = document.getElementById('code-editor');
+  const raw = ed.value.trim();
+  if (!raw) return;
+  pushUndo();
+  ed.value = formatHTML(raw);
+  updateEditorStats();
+  recordHistory(lang==='fa'?'فرمت کد':'Format');
+  showToast(t('formatted'));
 });
 
-/* ============================================================
-   COPY CODE
-   ============================================================ */
+function formatHTML(html) {
+  let result = '', indent = 0;
+  const VOID = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+  const INLINE = new Set(['a','abbr','b','bdi','bdo','br','cite','code','dfn','em','i','kbd','mark','q','rp','rt','ruby','s','samp','small','span','strong','sub','sup','time','u','var','wbr']);
+  // Simple tokenizer
+  const tokens = html.match(/(<!--[\s\S]*?-->|<[^>]+>|[^<]+)/g) || [];
+  const pad = () => '  '.repeat(Math.max(0,indent));
+  tokens.forEach(tok => {
+    const t = tok.trim();
+    if (!t) return;
+    if (t.startsWith('<!--')) { result += pad()+t+'\n'; return; }
+    if (t.startsWith('</')) {
+      const tag = t.slice(2,-1).trim().toLowerCase();
+      if (!INLINE.has(tag)) indent = Math.max(0,indent-1);
+      result += (INLINE.has(tag)?'':pad())+t+(INLINE.has(tag)?'':'\n');
+      return;
+    }
+    if (t.startsWith('<')) {
+      const tag = t.slice(1).split(/[\s>]/)[0].toLowerCase().replace('/','');
+      const isSelf = t.endsWith('/>') || VOID.has(tag);
+      result += pad()+t+(INLINE.has(tag)?'':'\n');
+      if (!isSelf && !INLINE.has(tag)) indent++;
+      return;
+    }
+    // text
+    result += pad()+t+'\n';
+  });
+  return result.trimEnd();
+}
+
+/* ══════════════════════════════════════════════════
+   COPY / DOWNLOAD / CLEAR
+══════════════════════════════════════════════════ */
 document.getElementById('btn-copy').addEventListener('click', () => {
-  const src = editor.value;
-  if (!src) { showToast('کدی برای کپی وجود ندارد'); return; }
-  navigator.clipboard.writeText(src).then(() => showToast('✓ کد کپی شد'));
+  const src = document.getElementById('code-editor').value;
+  if (!src) { showToast(t('no-code')); return; }
+  navigator.clipboard.writeText(src).then(()=>showToast(t('copied'),'green'));
 });
 
-/* ============================================================
-   DOWNLOAD
-   ============================================================ */
-document.getElementById('btn-download').addEventListener('click', () => {
-  const src = editor.value.trim();
-  if (!src) { showToast('ابتدا کد وارد کنید'); return; }
+document.getElementById('btn-dl').addEventListener('click', () => {
+  const src = document.getElementById('code-editor').value.trim();
+  if (!src) { showToast(t('no-code')); return; }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([src], { type:'text/html' }));
-  a.download = 'index.html';
-  a.click();
-  showToast('↓ فایل دانلود شد');
+  a.href = URL.createObjectURL(new Blob([src],{type:'text/html'}));
+  a.download = 'index.html'; a.click();
+  showToast(t('downloaded'),'accent');
 });
 
-/* ============================================================
-   CLEAR
-   ============================================================ */
 document.getElementById('btn-clear').addEventListener('click', () => {
-  if (editor.value && !confirm('همه چیز پاک شود؟')) return;
-  editor.value = '';
-  charCount.textContent = '0 کاراکتر';
-  frame.src = 'about:blank';
-  emptyState.style.display = 'flex';
-  previewStatus.textContent = '— منتظر کد —';
-  previewStatus.style.color = 'var(--dim)';
-  closePropPanel();
+  if (document.getElementById('code-editor').value && !confirm(t('confirm-clear'))) return;
+  document.getElementById('code-editor').value='';
+  undoStack=[]; redoStack=[]; _lastVal='';
+  frame.src='about:blank';
+  document.getElementById('empty-state').style.display='';
+  document.getElementById('preview-status').textContent=t('waiting');
+  document.getElementById('preview-status').style.color='var(--text-dim)';
+  document.getElementById('no-sel').style.display='';
+  document.getElementById('prop-body').style.display='none';
+  document.getElementById('prop-tag-name').style.display='none';
+  document.getElementById('status-sel').textContent='—';
+  updateEditorStats();
+  showToast(t('cleared'));
 });
 
-/* ============================================================
-   RESIZER
-   ============================================================ */
-const resizer   = document.getElementById('resizer');
-const codePanel = document.getElementById('code-panel');
-let resizing = false, startX = 0, startW = 0;
+/* ══════════════════════════════════════════════════
+   RESIZE PANEL
+══════════════════════════════════════════════════ */
+const resizer = document.getElementById('resizer');
+const codePane = document.getElementById('code-pane');
+let resizing=false, rStartX=0, rStartW=0;
 
-resizer.addEventListener('mousedown', e => {
-  resizing = true;
-  startX = e.clientX;
-  startW = codePanel.offsetWidth;
-  resizer.classList.add('dragging');
-  document.body.style.userSelect = 'none';
-  // prevent iframe from eating mouse events
-  frame.style.pointerEvents = 'none';
+resizer.addEventListener('mousedown', e=>{
+  resizing=true; rStartX=e.clientX; rStartW=codePane.offsetWidth;
+  resizer.classList.add('drag');
+  frame.style.pointerEvents='none';
+  document.body.style.userSelect='none';
+});
+document.addEventListener('mousemove', e=>{
+  if(!resizing) return;
+  const delta = lang==='fa' ? rStartX-e.clientX : e.clientX-rStartX;
+  const newW = Math.max(180, Math.min(window.innerWidth*.65, rStartW+delta));
+  codePane.style.width = newW+'px';
+});
+document.addEventListener('mouseup', ()=>{
+  if(!resizing) return;
+  resizing=false; resizer.classList.remove('drag');
+  frame.style.pointerEvents=''; document.body.style.userSelect='';
 });
 
-document.addEventListener('mousemove', e => {
-  if (!resizing) return;
-  // RTL: code panel is on the right, so drag left = bigger
-  const delta = startX - e.clientX;
-  const newW  = Math.max(280, Math.min(window.innerWidth * 0.7, startW + delta));
-  codePanel.style.width = newW + 'px';
+/* ══════════════════════════════════════════════════
+   VIEWPORT SIZE DISPLAY
+══════════════════════════════════════════════════ */
+const ro = new ResizeObserver(()=>{
+  const vp = document.getElementById('preview-pane');
+  document.getElementById('viewport-size').textContent = vp.offsetWidth+'×'+vp.offsetHeight;
 });
+ro.observe(document.getElementById('preview-pane'));
 
-document.addEventListener('mouseup', () => {
-  if (!resizing) return;
-  resizing = false;
-  resizer.classList.remove('dragging');
-  document.body.style.userSelect = '';
-  frame.style.pointerEvents = '';
-});
-
-/* ============================================================
-   HELPER: rgb(r,g,b) → #rrggbb
-   ============================================================ */
-function rgb2hex(str) {
-  if (!str) return '';
-  if (str.startsWith('#')) return str;
-  const m = str.match(/\d+/g);
-  if (!m || m.length < 3) return str;
-  return '#' + m.slice(0,3).map(x => parseInt(x).toString(16).padStart(2,'0')).join('');
+/* ══════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════ */
+let _toastT;
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(_toastT);
+  _toastT = setTimeout(()=>el.classList.remove('show'), 2400);
 }
 
-/* ============================================================
-   KEYBOARD SHORTCUTS HINT on load
-   ============================================================ */
-setTimeout(() => showToast('Ctrl+Enter برای اجرا / کلیک روی 👁 برای ویرایش بصری', 3500), 600);
+/* ══════════════════════════════════════════════════
+   HISTORY SYSTEM
+══════════════════════════════════════════════════ */
+const history_log = [];   // [{code, label, time, chars}]
+let selectedHistIdx = -1;
+
+function recordHistory(label) {
+  const code = document.getElementById('code-editor').value;
+  if (!code.trim()) return;
+  // Don't record if identical to last
+  if (history_log.length && history_log[history_log.length-1].code === code) return;
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0') + ':' +
+                  now.getMinutes().toString().padStart(2,'0') + ':' +
+                  now.getSeconds().toString().padStart(2,'0');
+  history_log.push({ code, label: label || (t('hist-label')+' '+(history_log.length+1)), time: timeStr, chars: code.length });
+  // Keep max 50
+  if (history_log.length > 50) history_log.shift();
+}
+
+function renderHistoryList() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+  if (!history_log.length) {
+    list.innerHTML = `<div style="padding:20px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--text-dim)">${t('hist-empty')}</div>`;
+    return;
+  }
+  // Show newest first
+  const reversed = [...history_log].reverse();
+  reversed.forEach((entry, ri) => {
+    const realIdx = history_log.length - 1 - ri;
+    const isCurrent = realIdx === history_log.length - 1;
+    const item = document.createElement('div');
+    item.className = 'hist-item' + (isCurrent?' current':'') + (selectedHistIdx===realIdx?' active':'');
+    const sizeDiff = realIdx > 0 ? history_log[realIdx].chars - history_log[realIdx-1].chars : 0;
+    const diffStr = sizeDiff > 0 ? `+${sizeDiff}` : sizeDiff < 0 ? `${sizeDiff}` : '±0';
+    const diffColor = sizeDiff > 0 ? 'var(--green)' : sizeDiff < 0 ? 'var(--red)' : 'var(--text-dim)';
+    item.innerHTML = `
+      <div class="h-num">#${realIdx + 1}</div>
+      <div class="h-label">${entry.label}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="h-time">${entry.time}</span>
+        <span class="h-size" style="color:${diffColor}">${diffStr} ch</span>
+      </div>
+      ${isCurrent ? `<div class="h-badge">${t('hist-now')}</div>` : ''}
+    `;
+    item.addEventListener('click', () => {
+      selectedHistIdx = realIdx;
+      showDiff(realIdx);
+      renderHistoryList();
+    });
+    list.appendChild(item);
+  });
+}
+
+function showDiff(idx) {
+  const entry = history_log[idx];
+  const prev  = idx > 0 ? history_log[idx - 1] : null;
+  const aLines = prev ? prev.code.split('\n') : [];
+  const bLines = entry.code.split('\n');
+
+  // Simple LCS-based diff
+  const diff = computeDiff(aLines, bLines);
+
+  const diffView = document.getElementById('diff-view');
+  diffView.innerHTML = '';
+
+  let adds = 0, rems = 0;
+  // Show context: only lines near changes (±3)
+  const changed = new Set();
+  diff.forEach((d, i) => { if (d.type !== 'same') { for(let j=Math.max(0,i-3);j<=Math.min(diff.length-1,i+3);j++) changed.add(j); } });
+
+  let lastShown = -1;
+  diff.forEach((d, i) => {
+    if (!changed.has(i)) return;
+    if (lastShown !== -1 && i > lastShown + 1) {
+      // separator
+      const sep = document.createElement('div');
+      sep.style.cssText = 'padding:2px 12px;color:var(--text-dim);font-family:var(--mono);font-size:10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--panel);';
+      sep.textContent = '···';
+      diffView.appendChild(sep);
+    }
+    lastShown = i;
+    if (d.type === 'add') adds++;
+    if (d.type === 'rem') rems++;
+    const line = document.createElement('div');
+    line.className = 'diff-line ' + (d.type==='add'?'added':d.type==='rem'?'removed':'same');
+    const ln = document.createElement('span'); ln.className='ln';
+    ln.textContent = d.type !== 'rem' ? (d.bLine+1) : '';
+    const lc = document.createElement('span'); lc.className='lc';
+    lc.textContent = d.text;
+    line.appendChild(ln); line.appendChild(lc);
+    diffView.appendChild(line);
+  });
+
+  if (!diff.length || (adds===0 && rems===0 && !prev)) {
+    diffView.innerHTML = `<div style="padding:20px;color:var(--text-dim);font-family:var(--mono);font-size:11px;text-align:center">${prev?'no changes':'(initial version)'}</div>`;
+  }
+
+  document.getElementById('diff-adds').textContent = adds ? `+${adds}` : '';
+  document.getElementById('diff-rems').textContent = rems ? `−${rems}` : '';
+  document.getElementById('diff-info').querySelector('[data-t="diff-select"]').textContent =
+    `${entry.label} — ${entry.time} — ${entry.chars} ch`;
+
+  document.getElementById('diff-label').textContent = `#${idx+1} / ${history_log.length}`;
+  const restoreBtn = document.getElementById('restore-btn');
+  const copyBtn    = document.getElementById('copy-hist-btn');
+  const isCurrent  = idx === history_log.length - 1;
+  restoreBtn.style.display = isCurrent ? 'none' : '';
+  copyBtn.style.display    = '';
+}
+
+function computeDiff(aLines, bLines) {
+  // Myers-like simple diff using DP LCS
+  const m = aLines.length, n = bLines.length;
+  // For large files, do a simplified line-hash diff
+  if (m + n > 2000) return simpleDiff(aLines, bLines);
+
+  const dp = [];
+  for (let i=0;i<=m;i++) { dp[i]=[]; for(let j=0;j<=n;j++) dp[i][j]=0; }
+  for (let i=1;i<=m;i++) for (let j=1;j<=n;j++) {
+    if (aLines[i-1]===bLines[j-1]) dp[i][j]=dp[i-1][j-1]+1;
+    else dp[i][j]=Math.max(dp[i-1][j],dp[i][j-1]);
+  }
+  const result = [];
+  let i=m, j=n;
+  while (i>0||j>0) {
+    if (i>0&&j>0&&aLines[i-1]===bLines[j-1]) {
+      result.unshift({type:'same',text:bLines[j-1],bLine:j-1}); i--;j--;
+    } else if (j>0&&(i===0||dp[i][j-1]>=dp[i-1][j])) {
+      result.unshift({type:'add',text:bLines[j-1],bLine:j-1}); j--;
+    } else {
+      result.unshift({type:'rem',text:aLines[i-1],bLine:-1}); i--;
+    }
+  }
+  return result;
+}
+
+function simpleDiff(aLines, bLines) {
+  const result = [];
+  const maxLen = Math.max(aLines.length, bLines.length);
+  for (let i=0;i<maxLen;i++) {
+    if (i<aLines.length && i<bLines.length) {
+      if (aLines[i]===bLines[i]) result.push({type:'same',text:bLines[i],bLine:i});
+      else { result.push({type:'rem',text:aLines[i],bLine:-1}); result.push({type:'add',text:bLines[i],bLine:i}); }
+    } else if (i<aLines.length) result.push({type:'rem',text:aLines[i],bLine:-1});
+    else result.push({type:'add',text:bLines[i],bLine:i});
+  }
+  return result;
+}
+
+// Open/close
+document.getElementById('btn-history').addEventListener('click', () => {
+  selectedHistIdx = -1;
+  document.getElementById('history-modal').classList.add('open');
+  renderHistoryList();
+  // reset diff view
+  document.getElementById('diff-view').innerHTML = '';
+  document.getElementById('diff-adds').textContent = '';
+  document.getElementById('diff-rems').textContent = '';
+  document.getElementById('diff-info').querySelector('[data-t="diff-select"]').textContent = t('diff-select');
+  document.getElementById('restore-btn').style.display = 'none';
+  document.getElementById('copy-hist-btn').style.display = 'none';
+  document.getElementById('diff-label').textContent = '';
+});
+
+document.getElementById('close-history').addEventListener('click', () => {
+  document.getElementById('history-modal').classList.remove('open');
+});
+document.getElementById('history-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('history-modal'))
+    document.getElementById('history-modal').classList.remove('open');
+});
+
+document.getElementById('hist-clear-btn').addEventListener('click', () => {
+  if (!confirm(lang==='fa'?'تاریخچه پاک شود؟':'Clear all history?')) return;
+  history_log.length = 0;
+  selectedHistIdx = -1;
+  renderHistoryList();
+  document.getElementById('diff-view').innerHTML = '';
+  document.getElementById('restore-btn').style.display = 'none';
+  document.getElementById('copy-hist-btn').style.display = 'none';
+  showToast(t('hist-cleared'));
+});
+
+document.getElementById('restore-btn').addEventListener('click', () => {
+  if (selectedHistIdx < 0) return;
+  const entry = history_log[selectedHistIdx];
+  pushUndo();
+  document.getElementById('code-editor').value = entry.code;
+  updateEditorStats();
+  recordHistory(lang==='fa'?'بازگردانی':'Restore');
+  document.getElementById('history-modal').classList.remove('open');
+  showToast(t('restored'), 'green');
+  run();
+});
+
+document.getElementById('copy-hist-btn').addEventListener('click', () => {
+  if (selectedHistIdx < 0) return;
+  navigator.clipboard.writeText(history_log[selectedHistIdx].code)
+    .then(() => showToast(t('copied'), 'green'));
+});
+
+
+renderElementsPalette();
+renderInsertGrid();
+setLang('fa');
+updateEditorStats();
+
+setTimeout(()=>showToast(lang==='fa'?'Ctrl+Enter برای اجرا | عناصر را از سایدبار درج کنید':'Ctrl+Enter to run | Drag elements from sidebar', 'accent'), 800);
 </script>
 </body>
 </html>

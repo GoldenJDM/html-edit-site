@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ویرایشگر بصری HTML</title>
+<style>
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0e0e0e;
+  --panel:     #141414;
+  --border:    #242424;
+  --text:      #d4d4d4;
+  --dim:       #555;
+  --accent:    #e8a838;
+  --accent2:   #39ff6e;
+  --danger:    #ff5f5f;
+  --mono:      'Courier New', monospace;
+  --sans:      'Tahoma', system-ui, sans-serif;
+  --bar-h:     46px;
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOP BAR ── */
+#topbar {
+  height: var(--bar-h);
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 10px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+#topbar .logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--accent);
+  letter-spacing: .05em;
+  margin-left: auto; /* RTL: pushes to right end */
+}
+
+.btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 13px;
+  cursor: pointer;
+  letter-spacing: .04em;
+  transition: border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { border-color: var(--accent); color: var(--accent); }
+.btn.primary:hover { background: var(--accent); color: #000; }
+.btn.green { border-color: var(--accent2); color: var(--accent2); }
+.btn.green:hover { background: var(--accent2); color: #000; }
+.btn.red { border-color: var(--danger); color: var(--danger); }
+
+#mode-indicator {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  letter-spacing: .06em;
+}
+#mode-indicator.visual { border-color: var(--accent2); color: var(--accent2); }
+#mode-indicator.code   { border-color: var(--accent);  color: var(--accent);  }
+
+/* ── MAIN LAYOUT ── */
+#main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── CODE PANEL ── */
+#code-panel {
+  width: 420px;
+  min-width: 280px;
+  max-width: 55%;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#code-panel-header {
+  height: 34px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+}
+
+#code-panel-header span { color: var(--accent); }
+
+#code-editor {
+  flex: 1;
+  background: #0a0a0a;
+  color: #c9c9c9;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.75;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 16px;
+  tab-size: 2;
+  direction: ltr;
+  text-align: left;
+  white-space: pre;
+  overflow: auto;
+}
+
+#code-editor::placeholder { color: #333; }
+
+/* ── RESIZE HANDLE ── */
+#resizer {
+  width: 5px;
+  background: var(--border);
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background .15s;
+}
+#resizer:hover, #resizer.dragging { background: var(--accent); }
+
+/* ── PREVIEW PANEL ── */
+#preview-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+#preview-panel-header {
+  height: 34px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+
+#preview-panel-header span { color: var(--accent2); }
+
+#preview-frame {
+  flex: 1;
+  border: none;
+  background: #fff;
+  display: block;
+}
+
+/* ── PROPERTY PANEL (slides in from bottom of preview) ── */
+#prop-panel {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 0;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+  transition: height .25s cubic-bezier(.22,.68,0,1.2);
+  z-index: 50;
+  direction: ltr;
+}
+
+#prop-panel.open { height: 220px; }
+
+#prop-panel-inner {
+  padding: 12px 14px;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#prop-tag-line {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#prop-tag-line .close-prop {
+  margin-right: auto;
+  cursor: pointer;
+  color: var(--dim);
+  font-size: 15px;
+  line-height: 1;
+  transition: color .15s;
+}
+#prop-tag-line .close-prop:hover { color: var(--danger); }
+
+.prop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 7px;
+}
+
+.prop-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.prop-row label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: .06em;
+}
+
+.prop-row input, .prop-row select, .prop-row textarea {
+  background: #0a0a0a;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 4px 8px;
+  outline: none;
+  direction: ltr;
+  text-align: left;
+  transition: border-color .15s;
+}
+
+.prop-row input:focus,
+.prop-row textarea:focus { border-color: var(--accent); }
+
+.prop-row textarea { resize: vertical; min-height: 52px; }
+
+#prop-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── TOOLTIP overlay ── */
+#hovered-hint {
+  position: fixed;
+  background: rgba(232,168,56,.9);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 7px;
+  pointer-events: none;
+  z-index: 9999;
+  letter-spacing: .05em;
+  display: none;
+}
+
+/* ── TOAST ── */
+#toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--accent);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 8px 20px;
+  opacity: 0;
+  transition: opacity .2s, transform .2s;
+  pointer-events: none;
+  z-index: 9999;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── EMPTY STATE ── */
+#empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #f8f8f8;
+  color: #888;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  text-align: center;
+  padding: 30px;
+  z-index: 5;
+}
+#empty-state .big { font-size: 40px; margin-bottom: 4px; }
+#empty-state p { color: #aaa; font-size: 12px; max-width: 280px; line-height: 1.6; }
+
+/* ── SCROLL ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <button class="btn primary" id="btn-run" title="اجرا کن">▶ اجرا</button>
+  <button class="btn green" id="btn-toggle-visual" title="حالت بصری">👁 بصری</button>
+  <button class="btn" id="btn-copy">⎘ کپی کد</button>
+  <button class="btn" id="btn-download">↓ دانلود</button>
+  <button class="btn red" id="btn-clear">✕ پاک</button>
+  <div id="mode-indicator" class="code">CODE</div>
+  <span class="logo">visual-editor v1</span>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- PREVIEW -->
+  <div id="preview-panel">
+    <div id="preview-panel-header">
+      <span>● PREVIEW</span>
+      <span id="preview-status" style="color:var(--dim)">— منتظر کد —</span>
+    </div>
+    <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-forms" title="پیش‌نمایش"></iframe>
+
+    <!-- empty state inside preview -->
+    <div id="empty-state">
+      <div class="big">{ }</div>
+      <strong>کد HTML خود را در سمت راست وارد کنید</strong>
+      <p>بعد از کلیک روی ▶ اجرا، سایت اینجا نمایش داده می‌شود.<br/>در حالت بصری روی هر عنصر کلیک کن تا ویرایشش کنی.</p>
+    </div>
+
+    <!-- property panel -->
+    <div id="prop-panel">
+      <div id="prop-panel-inner">
+        <div id="prop-tag-line">
+          <span id="prop-tag-label">&lt;element&gt;</span>
+          <span id="prop-path" style="color:var(--dim);font-size:10px;"></span>
+          <span class="close-prop" id="close-prop" title="بستن">✕</span>
+        </div>
+        <div class="prop-grid" id="prop-grid"></div>
+        <div id="prop-actions"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESIZER -->
+  <div id="resizer"></div>
+
+  <!-- CODE -->
+  <div id="code-panel">
+    <div id="code-panel-header">
+      <span>● HTML</span>
+      <span id="char-count" style="color:var(--dim);margin-right:auto;">0 کاراکتر</span>
+    </div>
+    <textarea id="code-editor" spellcheck="false" placeholder="<!-- کد HTML خود را اینجا بچسبانید -->&#10;&#10;<!DOCTYPE html>&#10;<html>&#10;  <head>...</head>&#10;  <body>...</body>&#10;</html>"></textarea>
+  </div>
+
+</div>
+
+<!-- TOOLTIP -->
+<div id="hovered-hint"></div>
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  visualMode: false,
+  selectedEl: null,   // element in iframe
+  selectedPath: '',
+};
+
+/* ============================================================
+   DOM REFS
+   ============================================================ */
+const editor       = document.getElementById('code-editor');
+const frame        = document.getElementById('preview-frame');
+const emptyState   = document.getElementById('empty-state');
+const propPanel    = document.getElementById('prop-panel');
+const propGrid     = document.getElementById('prop-grid');
+const propActions  = document.getElementById('prop-actions');
+const propTagLabel = document.getElementById('prop-tag-label');
+const propPath     = document.getElementById('prop-path');
+const modeBadge    = document.getElementById('mode-indicator');
+const previewStatus= document.getElementById('preview-status');
+const charCount    = document.getElementById('char-count');
+const hint         = document.getElementById('hovered-hint');
+const toast        = document.getElementById('toast');
+const btnVisual    = document.getElementById('btn-toggle-visual');
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastTimer;
+function showToast(msg, dur = 2000) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), dur);
+}
+
+/* ============================================================
+   CHAR COUNT
+   ============================================================ */
+editor.addEventListener('input', () => {
+  charCount.textContent = editor.value.length.toLocaleString('fa') + ' کاراکتر';
+});
+
+/* ============================================================
+   RUN — inject HTML into iframe
+   ============================================================ */
+function run() {
+  const src = editor.value.trim();
+  if (!src) { showToast('ابتدا کد HTML وارد کنید'); return; }
+
+  // inject the visual-edit overlay script into the html before rendering
+  const injected = injectOverlayScript(src);
+
+  const blob = new Blob([injected], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  frame.src  = url;
+
+  emptyState.style.display = 'none';
+  previewStatus.textContent = '✓ در حال نمایش';
+  previewStatus.style.color = 'var(--accent2)';
+
+  // listen for messages from iframe
+  setupFrameListener();
+  showToast('▶ اجرا شد');
+}
+
+document.getElementById('btn-run').addEventListener('click', run);
+
+// also run on Ctrl+Enter
+editor.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') run();
+});
+
+/* ============================================================
+   INJECT OVERLAY SCRIPT
+   Adds click/hover listeners inside the iframe that post
+   messages back to the parent window.
+   ============================================================ */
+function injectOverlayScript(html) {
+  const script = `
+<script id="__ve_script">
+(function(){
+  var _sel = null;
+  var _overlay = null;
+  var _visualMode = false;
+
+  // receive commands from parent
+  window.addEventListener('message', function(e){
+    if (!e.data) return;
+    if (e.data.type === 'VE_SET_MODE') {
+      _visualMode = e.data.visual;
+      document.body.style.cursor = _visualMode ? 'crosshair' : '';
+      if (!_visualMode && _overlay) { _overlay.remove(); _overlay = null; }
+    }
+    if (e.data.type === 'VE_APPLY') {
+      applyProps(e.data.props);
+    }
+    if (e.data.type === 'VE_DELETE') {
+      if (_sel) { _sel.remove(); _sel = null; sendHTML(); }
+    }
+    if (e.data.type === 'VE_DUPLICATE') {
+      if (_sel) { var c = _sel.cloneNode(true); _sel.parentNode.insertBefore(c, _sel.nextSibling); sendHTML(); }
+    }
+  });
+
+  function applyProps(props) {
+    if (!_sel) return;
+    if (props.text !== undefined && _sel.childElementCount === 0) {
+      _sel.textContent = props.text;
+    }
+    if (props.href !== undefined) _sel.href = props.href;
+    if (props.src  !== undefined) _sel.src  = props.src;
+    if (props.alt  !== undefined) _sel.alt  = props.alt;
+    // style props
+    var styleMap = {
+      color:'color', fontSize:'font-size', fontWeight:'font-weight',
+      bg:'background-color', padding:'padding', margin:'margin',
+      textAlign:'text-align', borderRadius:'border-radius',
+      width:'width', height:'height', display:'display'
+    };
+    Object.keys(styleMap).forEach(function(k){
+      if (props[k] !== undefined) {
+        _sel.style[k.replace(/([A-Z])/g, '-$1').toLowerCase()] = props[k];
+      }
+    });
+    sendHTML();
+  }
+
+  function sendHTML() {
+    window.parent.postMessage({ type: 'VE_HTML', html: document.documentElement.outerHTML }, '*');
+  }
+
+  function getPath(el) {
+    var parts = [];
+    var cur = el;
+    while (cur && cur !== document.body && cur.tagName) {
+      var tag = cur.tagName.toLowerCase();
+      var idx = Array.from(cur.parentNode ? cur.parentNode.children : []).indexOf(cur);
+      parts.unshift(tag + (idx > 0 ? ':nth-child(' + (idx+1) + ')' : ''));
+      cur = cur.parentNode;
+    }
+    return 'body › ' + parts.join(' › ');
+  }
+
+  document.addEventListener('mouseover', function(e){
+    if (!_visualMode) return;
+    e.stopPropagation();
+    // highlight
+    if (_overlay) _overlay.remove();
+    var el = e.target;
+    if (el === document.body || el === document.documentElement) return;
+    var r = el.getBoundingClientRect();
+    _overlay = document.createElement('div');
+    Object.assign(_overlay.style, {
+      position:'fixed', pointerEvents:'none', zIndex:'99999',
+      top: r.top + 'px', left: r.left + 'px',
+      width: r.width + 'px', height: r.height + 'px',
+      outline: '2px solid #e8a838',
+      background: 'rgba(232,168,56,.07)'
+    });
+    document.body.appendChild(_overlay);
+    window.parent.postMessage({ type:'VE_HOVER', tag: el.tagName.toLowerCase() }, '*');
+  });
+
+  document.addEventListener('mouseout', function(){
+    if (_overlay) { _overlay.remove(); _overlay = null; }
+    window.parent.postMessage({ type:'VE_HOVER', tag: null }, '*');
+  });
+
+  document.addEventListener('click', function(e){
+    if (!_visualMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    _sel = e.target;
+    var cs = window.getComputedStyle(_sel);
+    window.parent.postMessage({
+      type: 'VE_SELECT',
+      tag:  _sel.tagName.toLowerCase(),
+      path: getPath(_sel),
+      text: _sel.childElementCount === 0 ? _sel.textContent : '',
+      href: _sel.href || _sel.getAttribute('href') || '',
+      src:  _sel.src  || _sel.getAttribute('src')  || '',
+      alt:  _sel.alt  || '',
+      style: {
+        color:        _sel.style.color        || cs.color,
+        fontSize:     _sel.style.fontSize     || cs.fontSize,
+        fontWeight:   _sel.style.fontWeight   || cs.fontWeight,
+        bg:           _sel.style.backgroundColor || cs.backgroundColor,
+        padding:      _sel.style.padding      || cs.padding,
+        textAlign:    _sel.style.textAlign    || cs.textAlign,
+        borderRadius: _sel.style.borderRadius || cs.borderRadius,
+        width:        _sel.style.width        || '',
+        height:       _sel.style.height       || '',
+        display:      _sel.style.display      || cs.display,
+      }
+    }, '*');
+  }, true);
+})();
+<\/script>`;
+
+  // inject before </body> or at end
+  if (html.includes('</body>')) {
+    return html.replace('</body>', script + '</body>');
+  }
+  return html + script;
+}
+
+/* ============================================================
+   FRAME LISTENER
+   ============================================================ */
+let frameListenerSetup = false;
+function setupFrameListener() {
+  if (frameListenerSetup) return;
+  frameListenerSetup = true;
+
+  window.addEventListener('message', (e) => {
+    const d = e.data;
+    if (!d || !d.type) return;
+
+    if (d.type === 'VE_HOVER') {
+      if (d.tag) {
+        hint.textContent = '<' + d.tag + '>';
+        hint.style.display = 'block';
+      } else {
+        hint.style.display = 'none';
+      }
+    }
+
+    if (d.type === 'VE_SELECT') {
+      openPropPanel(d);
+    }
+
+    if (d.type === 'VE_HTML') {
+      // update editor with new HTML (sync back)
+      editor.value = d.html;
+      charCount.textContent = editor.value.length.toLocaleString('fa') + ' کاراکتر';
+      showToast('✓ کد به‌روز شد');
+    }
+  });
+
+  // track mouse over iframe area to show hint
+  document.addEventListener('mousemove', (e) => {
+    hint.style.top  = (e.clientY + 14) + 'px';
+    hint.style.left = (e.clientX + 14) + 'px';
+  });
+}
+
+/* ============================================================
+   VISUAL MODE TOGGLE
+   ============================================================ */
+document.getElementById('btn-toggle-visual').addEventListener('click', () => {
+  state.visualMode = !state.visualMode;
+  modeBadge.textContent = state.visualMode ? 'VISUAL' : 'CODE';
+  modeBadge.className   = state.visualMode ? 'visual' : 'code';
+  btnVisual.textContent = state.visualMode ? '✕ خروج از بصری' : '👁 بصری';
+
+  frame.contentWindow?.postMessage({ type: 'VE_SET_MODE', visual: state.visualMode }, '*');
+
+  if (!state.visualMode) {
+    closePropPanel();
+    hint.style.display = 'none';
+  }
+  showToast(state.visualMode ? '👁 حالت بصری فعال — روی عنصرها کلیک کن' : '✎ حالت کد');
+});
+
+/* ============================================================
+   PROPERTY PANEL
+   ============================================================ */
+function openPropPanel(data) {
+  propTagLabel.textContent = '<' + data.tag + '>';
+  propPath.textContent     = data.path;
+  propGrid.innerHTML       = '';
+  propActions.innerHTML    = '';
+
+  const tag = data.tag;
+  const st  = data.style || {};
+
+  const fields = [];
+
+  // text content (only for leaf elements)
+  if (data.text !== undefined && !['img','input','br','hr'].includes(tag)) {
+    fields.push({ key:'text', label:'متن', type:'textarea', val: data.text });
+  }
+  if (tag === 'a')   fields.push({ key:'href', label:'لینک (href)', type:'text', val: data.href });
+  if (tag === 'img') fields.push({ key:'src', label:'آدرس تصویر', type:'text', val: data.src });
+  if (tag === 'img') fields.push({ key:'alt', label:'متن جایگزین', type:'text', val: data.alt });
+
+  // style fields
+  fields.push({ key:'color',        label:'رنگ متن',       type:'color-text', val: rgb2hex(st.color) });
+  fields.push({ key:'bg',           label:'پس‌زمینه',      type:'color-text', val: rgb2hex(st.bg) });
+  fields.push({ key:'fontSize',     label:'اندازه فونت',   type:'text', val: st.fontSize });
+  fields.push({ key:'fontWeight',   label:'ضخامت فونت',    type:'select',
+    options:['400','500','600','700','800','bold','normal'], val: st.fontWeight });
+  fields.push({ key:'textAlign',    label:'تراز متن',      type:'select',
+    options:['right','left','center','justify'], val: st.textAlign });
+  fields.push({ key:'padding',      label:'پدینگ',         type:'text', val: st.padding });
+  fields.push({ key:'borderRadius', label:'گوشه‌گرد',      type:'text', val: st.borderRadius });
+  fields.push({ key:'width',        label:'عرض',           type:'text', val: st.width });
+  fields.push({ key:'display',      label:'display',       type:'select',
+    options:['block','inline','inline-block','flex','grid','none',''], val: st.display });
+
+  fields.forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'prop-row';
+    const lbl = document.createElement('label');
+    lbl.textContent = f.label;
+    row.appendChild(lbl);
+
+    let inp;
+    if (f.type === 'textarea') {
+      inp = document.createElement('textarea');
+      inp.rows = 2;
+    } else if (f.type === 'select') {
+      inp = document.createElement('select');
+      f.options.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o; opt.textContent = o || '(پیش‌فرض)';
+        if (o === f.val) opt.selected = true;
+        inp.appendChild(opt);
+      });
+    } else if (f.type === 'color-text') {
+      // color picker + text combo
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;gap:4px;align-items:center';
+      const colorPick = document.createElement('input');
+      colorPick.type = 'color';
+      colorPick.value = f.val || '#000000';
+      colorPick.style.cssText = 'width:28px;height:26px;padding:1px;background:#0a0a0a;border:1px solid #242424;cursor:pointer;';
+      const textPick = document.createElement('input');
+      textPick.type = 'text';
+      textPick.value = f.val || '';
+      textPick.style.flex = '1';
+      textPick.dataset.key = f.key;
+      colorPick.addEventListener('input', () => { textPick.value = colorPick.value; });
+      textPick.addEventListener('input', () => {
+        if (/^#[0-9a-fA-F]{6}$/.test(textPick.value)) colorPick.value = textPick.value;
+      });
+      wrap.appendChild(colorPick);
+      wrap.appendChild(textPick);
+      // use textPick as the main inp for value reading
+      row.appendChild(wrap);
+      textPick.dataset.key = f.key;
+      propGrid.appendChild(row);
+      return; // handled separately
+    } else {
+      inp = document.createElement('input');
+      inp.type = 'text';
+    }
+
+    inp.value = f.val || '';
+    inp.dataset.key = f.key;
+    row.appendChild(inp);
+    propGrid.appendChild(row);
+  });
+
+  // Actions
+  const applyBtn = document.createElement('button');
+  applyBtn.className = 'btn primary';
+  applyBtn.textContent = '✓ اعمال تغییرات';
+  applyBtn.addEventListener('click', applyChanges);
+  propActions.appendChild(applyBtn);
+
+  const dupBtn = document.createElement('button');
+  dupBtn.className = 'btn';
+  dupBtn.textContent = '⎘ کپی عنصر';
+  dupBtn.addEventListener('click', () => {
+    frame.contentWindow?.postMessage({ type:'VE_DUPLICATE' }, '*');
+  });
+  propActions.appendChild(dupBtn);
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'btn red';
+  delBtn.textContent = '✕ حذف عنصر';
+  delBtn.addEventListener('click', () => {
+    if (confirm('این عنصر حذف شود؟')) {
+      frame.contentWindow?.postMessage({ type:'VE_DELETE' }, '*');
+      closePropPanel();
+    }
+  });
+  propActions.appendChild(delBtn);
+
+  propPanel.classList.add('open');
+}
+
+function applyChanges() {
+  const props = {};
+  propGrid.querySelectorAll('[data-key]').forEach(inp => {
+    props[inp.dataset.key] = inp.value;
+  });
+  frame.contentWindow?.postMessage({ type:'VE_APPLY', props }, '*');
+}
+
+function closePropPanel() {
+  propPanel.classList.remove('open');
+}
+
+document.getElementById('close-prop').addEventListener('click', closePropPanel);
+
+// live apply on Enter in text inputs
+propGrid.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT') applyChanges();
+});
+
+/* ============================================================
+   COPY CODE
+   ============================================================ */
+document.getElementById('btn-copy').addEventListener('click', () => {
+  const src = editor.value;
+  if (!src) { showToast('کدی برای کپی وجود ندارد'); return; }
+  navigator.clipboard.writeText(src).then(() => showToast('✓ کد کپی شد'));
+});
+
+/* ============================================================
+   DOWNLOAD
+   ============================================================ */
+document.getElementById('btn-download').addEventListener('click', () => {
+  const src = editor.value.trim();
+  if (!src) { showToast('ابتدا کد وارد کنید'); return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([src], { type:'text/html' }));
+  a.download = 'index.html';
+  a.click();
+  showToast('↓ فایل دانلود شد');
+});
+
+/* ============================================================
+   CLEAR
+   ============================================================ */
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (editor.value && !confirm('همه چیز پاک شود؟')) return;
+  editor.value = '';
+  charCount.textContent = '0 کاراکتر';
+  frame.src = 'about:blank';
+  emptyState.style.display = 'flex';
+  previewStatus.textContent = '— منتظر کد —';
+  previewStatus.style.color = 'var(--dim)';
+  closePropPanel();
+});
+
+/* ============================================================
+   RESIZER
+   ============================================================ */
+const resizer   = document.getElementById('resizer');
+const codePanel = document.getElementById('code-panel');
+let resizing = false, startX = 0, startW = 0;
+
+resizer.addEventListener('mousedown', e => {
+  resizing = true;
+  startX = e.clientX;
+  startW = codePanel.offsetWidth;
+  resizer.classList.add('dragging');
+  document.body.style.userSelect = 'none';
+  // prevent iframe from eating mouse events
+  frame.style.pointerEvents = 'none';
+});
+
+document.addEventListener('mousemove', e => {
+  if (!resizing) return;
+  // RTL: code panel is on the right, so drag left = bigger
+  const delta = startX - e.clientX;
+  const newW  = Math.max(280, Math.min(window.innerWidth * 0.7, startW + delta));
+  codePanel.style.width = newW + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+  if (!resizing) return;
+  resizing = false;
+  resizer.classList.remove('dragging');
+  document.body.style.userSelect = '';
+  frame.style.pointerEvents = '';
+});
+
+/* ============================================================
+   HELPER: rgb(r,g,b) → #rrggbb
+   ============================================================ */
+function rgb2hex(str) {
+  if (!str) return '';
+  if (str.startsWith('#')) return str;
+  const m = str.match(/\d+/g);
+  if (!m || m.length < 3) return str;
+  return '#' + m.slice(0,3).map(x => parseInt(x).toString(16).padStart(2,'0')).join('');
+}
+
+/* ============================================================
+   KEYBOARD SHORTCUTS HINT on load
+   ============================================================ */
+setTimeout(() => showToast('Ctrl+Enter برای اجرا / کلیک روی 👁 برای ویرایش بصری', 3500), 600);
+</script>
+</body>
+</html>
